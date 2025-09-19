@@ -70,7 +70,7 @@ type Cursor struct {
 	HasMore  bool `json:"hasMore"`
 	StartId  int  `json:"startId,omitempty"`
 	Offset   int  `json:"Offset"`
-	PageSize bool `json:"pageSize,omitempty"`
+	PageSize int  `json:"pageSize,omitempty"`
 }
 
 type OperationLogin struct {
@@ -83,6 +83,12 @@ type OperationContinue struct {
 	OperationName string            `json:"operationName"`
 	Variables     VariablesContinue `json:"variables"`
 	Query         string            `json:"query"`
+}
+
+type OperationBetweenDate struct {
+	OperationName string                    `json:"operationName"`
+	Variables     VariablesUpdateWithCursor `json:"variables"`
+	Query         string                    `json:"query"`
 }
 
 type OperationUpdate struct {
@@ -328,6 +334,17 @@ type VariablesUpdate struct {
 	End      time.Time `json:"end"`
 	Tags     []Tag     `json:"tags"`
 	Note     string    `json:"note"`
+}
+
+type InputCursor struct {
+	Offset   int `json:"offset"`
+	PageSize int `json:"pageSize,omitempty"`
+}
+
+type VariablesUpdateWithCursor struct {
+	Start  time.Time   `json:"start"`
+	End    time.Time   `json:"end"`
+	Cursor InputCursor `json:"cursor"`
 }
 
 func (t TimersData) PrettyPrint(colors config.ColorsDef, highlight string) {

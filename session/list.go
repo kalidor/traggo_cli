@@ -3,44 +3,57 @@ package session
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"time"
 )
 
 func (t *Traggo) ListBetweenDates(startDate time.Time, endDate time.Time) TimeSpanTaskList {
-	op := OperationUpdate{
-		OperationName: "TimeSpansInRange",
-		Variables: VariablesUpdate{
-			Start: startDate,
-			End:   endDate,
+	op := OperationBetweenDate{
+		OperationName: "TimeSpans",
+		Variables: VariablesUpdateWithCursor{
+			Start:  startDate,
+			End:    endDate,
+			Cursor: InputCursor{Offset: 0, PageSize: 100},
 		},
-		Query: "query TimeSpansInRange($start: Time!, $end: Time!) {\n  timeSpans(fromInclusive: $start, toInclusive: $end) {\n    timeSpans {\n      id\n      start\n      end\n      tags {\n        key\n        value\n        __typename\n      }\n      oldStart\n      note\n      __typename\n    }\n    cursor {\n      startId\n      offset\n      pageSize\n      __typename\n    }\n    __typename\n  }\n}\n",
+		Query: "query TimeSpans($start: Time!, $end: Time!, $cursor: InputCursor) {\n  timeSpans(fromInclusive: $start, toInclusive: $end, cursor: $cursor) {\n    timeSpans {\n      id\n      start\n      end\n      tags {\n        key\n        value\n        __typename\n      }\n      oldStart\n      note\n      __typename\n    }\n    cursor {\n      hasMore\n    startId\n      offset\n      pageSize\n      __typename\n    }\n    __typename\n  }\n}\n",
 	}
-	var body []byte
-	body, err := json.Marshal(op)
-	if err != nil {
-		panic(err)
-	}
+	timeSpanTaskSlice := []TimeSpanTask{}
+	for {
+		var body []byte
+		body, err := json.Marshal(op)
+		if err != nil {
+			panic(err)
+		}
 
-	req, err := http.NewRequest("POST", t.Url, bytes.NewReader(body))
-	if err != nil {
-		log.Fatal(err)
-	}
-	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("Cookie", t.Token)
+		req, err := http.NewRequest("POST", t.Url, bytes.NewReader(body))
+		if err != nil {
+			log.Fatal(err)
+		}
+		req.Header.Add("Content-Type", "application/json")
+		req.Header.Add("Cookie", t.Token)
 
-	res, err := http.DefaultClient.Do(req)
-	if err != nil {
-		log.Fatal(err)
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			log.Fatal(err)
+		}
+		if res.StatusCode != 200 {
+			log.Fatal("List BetweenDates task failure")
+		}
+
+		var d TimeSpanRoot
+		json.NewDecoder(res.Body).Decode(&d)
+		for _, timespan := range d.Data.TimeSpans.TimeSpans {
+			timeSpanTaskSlice = append(timeSpanTaskSlice, timespan)
+		}
+		if !d.Data.TimeSpans.Cursor.HasMore {
+			// stop the pagination loop
+			break
+		}
+		op.Variables.Cursor.Offset = d.Data.TimeSpans.Cursor.Offset
+
 	}
-	if res.StatusCode != 200 {
-		log.Fatal("List BetweenDates task failure")
-	}
-	var d TimeSpanRoot
-	json.NewDecoder(res.Body).Decode(&d)
-	return d.Data.TimeSpans.TimeSpans
+	return timeSpanTaskSlice
 }
 
 func (t *Traggo) List() TimersData {
@@ -121,13 +134,11 @@ func (t *Traggo) SearchTask(id int) GenericTask {
 				return task
 			}
 		}
-		fmt.Println(d.Data.TimeSpans.Cursor.HasMore)
-		if d.Data.TimeSpans.Cursor.HasMore {
-			op.Variables.Cursor.Offset = d.Data.TimeSpans.Cursor.Offset
-		} else {
+		if !d.Data.TimeSpans.Cursor.HasMore {
 			// stop the pagination loop
 			break
 		}
+		op.Variables.Cursor.Offset = d.Data.TimeSpans.Cursor.Offset
 	}
 	return nil
 }
