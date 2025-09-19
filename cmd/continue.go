@@ -22,7 +22,7 @@ var continueCmd = &cobra.Command{
 		c := config.LoadConfig(configPath)
 		s := session.NewTraggoSession(c)
 		var task session.GenericTask
-		re := regexp.MustCompile(`(?P<TagName>[[:word:]]*):(?P<TagValue>[[:word:]]*)`)
+		re := regexp.MustCompile(`(?P<TagName>[[:word:]]*):(?P<TagValue>[a-zA-Z_\-0-9]+)`)
 		matches := re.FindStringSubmatch(args[0])
 		if len(matches) > 0 {
 			nIndex := re.SubexpIndex("TagName")
@@ -45,6 +45,7 @@ var continueCmd = &cobra.Command{
 			return nil
 		}
 		s.Continue(task)
+		// TODO: show freshly created continued task
 		return nil
 	},
 }
