@@ -14,7 +14,7 @@ func (t *Traggo) ListBetweenDates(startDate time.Time, endDate time.Time) TimeSp
 		Variables: VariablesUpdateWithCursor{
 			Start:  startDate,
 			End:    endDate,
-			Cursor: InputCursor{Offset: 0, PageSize: 100},
+			Cursor: CursorRequest{Offset: 0, PageSize: 10},
 		},
 		Query: "query TimeSpans($start: Time!, $end: Time!, $cursor: InputCursor) {\n  timeSpans(fromInclusive: $start, toInclusive: $end, cursor: $cursor) {\n    timeSpans {\n      id\n      start\n      end\n      tags {\n        key\n        value\n        __typename\n      }\n      oldStart\n      note\n      __typename\n    }\n    cursor {\n      hasMore\n    startId\n      offset\n      pageSize\n      __typename\n    }\n    __typename\n  }\n}\n",
 	}

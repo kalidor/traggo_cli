@@ -336,15 +336,10 @@ type VariablesUpdate struct {
 	Note     string    `json:"note"`
 }
 
-type InputCursor struct {
-	Offset   int `json:"offset"`
-	PageSize int `json:"pageSize,omitempty"`
-}
-
 type VariablesUpdateWithCursor struct {
-	Start  time.Time   `json:"start"`
-	End    time.Time   `json:"end"`
-	Cursor InputCursor `json:"cursor"`
+	Start  time.Time     `json:"start"`
+	End    time.Time     `json:"end"`
+	Cursor CursorRequest `json:"cursor"`
 }
 
 func (t TimersData) PrettyPrint(colors config.ColorsDef, highlight string) {
