@@ -28,7 +28,7 @@ var (
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := config.LoadConfig(configPath)
 			s := session.NewTraggoSession(c)
-			s.List()
+			s.ListCurrentTasks()
 			if rmAll {
 				if rmAllYes {
 					fmt.Println("TODO: will remove all without confirmation")
@@ -47,10 +47,15 @@ var (
 				}
 				return nil
 			}
+			if len(ids) > 0 {
+				s.Delete(ids)
+				return nil
+			}
 			if len(args) == 0 {
 				fmt.Println("Argument is missing. Please run 'traggo_cli rm -h'")
 				return nil
 			}
+
 			if strings.Contains(args[0], "-") {
 				ids, err := handleRangeIds(args[0])
 				if err != nil {
