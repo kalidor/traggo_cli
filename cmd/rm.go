@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -22,6 +23,7 @@ var (
 		Long: `Delete task(s).
 	
 - ./traggo_cli rm -i 222,223,224
+- ./traggo_cli rm 222-300
 - ./traggo_cli rm --all # will ask confirmation
 - ./traggo_cli rm --all --yes # will NOT ask confirmation
 `,
@@ -62,6 +64,7 @@ var (
 					return err
 				}
 				s.Delete(ids)
+				return nil
 
 			} else if len(args) == 3 && strings.Contains(args[1], "-") {
 				// Example ./traggo_cli rm 288 - 295
@@ -72,8 +75,9 @@ var (
 				}
 				fmt.Println(ids)
 				s.Delete(ids)
+				return nil
 			}
-			return nil
+			return errors.New("missing id(s) to delete")
 		},
 	}
 )
