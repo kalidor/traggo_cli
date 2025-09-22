@@ -8,11 +8,9 @@ import (
 	"net/http"
 	"strings"
 	"time"
-)
 
-func (t *Traggo) StartManual(tags []string, startDate time.Time, endDate time.Time) {
-	//TODO:
-}
+	"github.com/kalidor/traggo_cli/config"
+)
 
 func (t *Traggo) Start(tags []string, note string) {
 	var splitedSlice []Tag
@@ -32,35 +30,23 @@ func (t *Traggo) Start(tags []string, note string) {
 		},
 		Query: "mutation StartTimer($start: Time!, $tags: [InputTimeSpanTag!], $note: String!) {\n  createTimeSpan(start: $start, tags: $tags, note: $note) {\n    id\n    start\n    end\n    tags {\n      key\n      value\n      __typename\n    }\n    oldStart\n    note\n    __typename\n  }\n}\n",
 	}
-	body, err := json.Marshal(op)
-	if err != nil {
-		panic(err)
-	}
-
-	req, err := http.NewRequest("POST", t.Url, bytes.NewReader(body))
-	if err != nil {
-		log.Fatal(err)
-	}
-	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("Cookie", t.Token)
-
-	res, err := http.DefaultClient.Do(req)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	if res.StatusCode != 200 {
-		log.Fatal("Start task failure")
-	}
 
 	// Parse http.Response Boby as JSON and display it
 	var d createTimeSpanRoot
-	json.NewDecoder(res.Body).Decode(&d)
+	err := t.Request(
+		"Start",
+		"POST",
+		op,
+		&d,
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
 	d.Data.Data.PrettyPrint(t.Colors)
 
 }
 
-func (t *Traggo) Stop(ids []int) {
+func (t *Traggo) Stop(colors config.ColorsDef, ids []int) {
 	op := OperationUpdate{
 		OperationName: "StopTimer",
 		Variables: VariablesUpdate{
@@ -73,24 +59,17 @@ func (t *Traggo) Stop(ids []int) {
 	for _, id := range ids {
 		fmt.Printf("Stopping: %d \n", id)
 		op.Variables.Id = id
-		body, err := json.Marshal(op)
-		if err != nil {
-			panic(err)
-		}
-		req, err := http.NewRequest("POST", t.Url, bytes.NewReader(body))
-		if err != nil {
-			log.Fatal(err)
-		}
-		req.Header.Add("Content-Type", "application/json")
-		req.Header.Add("Cookie", t.Token)
-
-		res, err := http.DefaultClient.Do(req)
+		var d TimeSpanTask
+		err := t.Request(
+			"ListBetweenDates",
+			"POST",
+			op,
+			&d,
+		)
 		if err != nil {
 			log.Fatal(err)
 		}
-		if res.StatusCode != 200 {
-			log.Fatal("Stop task failure")
-		}
+		d.PrettyPrint(colors)
 	}
 }
 
@@ -103,7 +82,6 @@ func (t *Traggo) Delete(ids []int) {
 		Query: "mutation RemoveTimeSpan($id: Int!) {\n  removeTimeSpan(id: $id) {\n    id\n    __typename\n  }\n}\n",
 	}
 	for _, id := range ids {
-		fmt.Printf("Deleting: %d \n", id)
 		op.Variables.Id = id
 		body, err := json.Marshal(op)
 		if err != nil {

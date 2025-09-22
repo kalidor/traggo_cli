@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 
@@ -32,6 +33,37 @@ type DataLogin struct {
 }
 type TraggoAuthResponse struct {
 	Data DataLogin `json:"data"`
+}
+
+func (t *Traggo) Request(command, method string, postBody, model any) error {
+	var body []byte
+	body, err := json.Marshal(postBody)
+	if err != nil {
+		panic(err)
+	}
+
+	req, err := http.NewRequest("POST", t.Url, bytes.NewReader(body))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Cookie", t.Token)
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if res.StatusCode != 200 {
+		c, _ := io.ReadAll(res.Body)
+		fmt.Println(string(c))
+		return fmt.Errorf("command '%s' failed. '%s'", command, res.Status)
+	}
+
+	json.NewDecoder(res.Body).Decode(model)
+
+	return nil
 }
 
 func (t *Traggo) Ping() bool {

@@ -81,7 +81,7 @@ type OperationLogin struct {
 
 type OperationContinue struct {
 	OperationName string            `json:"operationName"`
-	Variables     VariablesContinue `json:"variables"`
+	Variables     VariablesContinue `json:"variables,omitempty"`
 	Query         string            `json:"query"`
 }
 
@@ -328,12 +328,12 @@ type VariablesContinue struct {
 }
 
 type VariablesUpdate struct {
-	OldStart time.Time `json:"oldStart,omitempty"`
+	OldStart time.Time `json:"oldStarts,omitzero"`
 	Id       int       `json:"id,omitempty"`
-	Start    time.Time `json:"start"`
-	End      time.Time `json:"end"`
-	Tags     []Tag     `json:"tags"`
-	Note     string    `json:"note"`
+	Start    time.Time `json:"start,omitzero"`
+	End      time.Time `json:"end,omitzero"`
+	Tags     []Tag     `json:"tags,omitzero"`
+	Note     string    `json:"note"` // do not omit if empty
 }
 
 type VariablesUpdateWithCursor struct {

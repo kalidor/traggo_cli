@@ -17,7 +17,7 @@ var stopCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		c := config.LoadConfig(configPath)
 		s := session.NewTraggoSession(c)
-		s.Stop(ids)
+		s.Stop(c.Colors, ids)
 	},
 }
 

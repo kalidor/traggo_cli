@@ -62,9 +62,8 @@ var (
 					return err
 				}
 				s.Delete(ids)
-				return nil
-			}
-			if len(args) == 3 && strings.Contains(args[1], "-") {
+
+			} else if len(args) == 3 && strings.Contains(args[1], "-") {
 				// Example ./traggo_cli rm 288 - 295
 				arg := fmt.Sprintf("%s-%s", args[0], args[2])
 				ids, err := handleRangeIds(arg)

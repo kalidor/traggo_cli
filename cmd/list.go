@@ -96,7 +96,7 @@ var (
 			if startDate.IsZero() && endDate.IsZero() && !today {
 				if period == "" {
 					// if there is no parameter, display current tasks
-					tasks := s.List() // timers
+					tasks := s.ListCurrentTasks()
 					if tasks.IsEmpty() {
 						return nil
 					}
@@ -117,8 +117,7 @@ var (
 				}
 				doneTasks.PrettyPrint(c.Colors, highlight)
 
-				// Current tasks
-				tasks := s.List() // timers
+				tasks := s.ListCurrentTasks()
 				if tasks.IsEmpty() {
 					return nil
 				}
