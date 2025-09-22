@@ -1,6 +1,9 @@
 package cmd
 
 import (
+	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 
@@ -9,19 +12,25 @@ import (
 
 var (
 	configPath string
-	cfgFile    string
+	verbose    bool
 	// rootCmd represents the base command when called without any subcommands
 	rootCmd = &cobra.Command{
-		Use:   "traggo_cli",
-		Short: "Traggo CLI to interact with Traggo using API only.",
-		Long: `A longer description that spans multiple lines and likely contains
-	examples and usage of using your application. For example:
-
-	Cobra is a CLI library for Go that empowers applications.
-	This application is a tool to generate the needed files
-	to quickly create a Cobra application.`,
+		Use:              "traggo_cli",
+		Short:            "Traggo CLI to interact with Traggo using API only.",
+		PersistentPreRun: preRunRoot,
 	}
+	printBody func(r http.Response)
 )
+
+func preRunRoot(cmd *cobra.Command, args []string) {
+	if verbose {
+		fmt.Printf("verbose=%t\n", verbose)
+		printBody = func(r http.Response) {
+			b, _ := io.ReadAll(r.Body)
+			fmt.Println(string(b))
+		}
+	}
+}
 
 func Execute() {
 	err := rootCmd.Execute()
@@ -39,4 +48,5 @@ func init() {
 
 	rootCmd.Flags().BoolP("help", "h", false, "Help message")
 	rootCmd.Flags().StringVarP(&configPath, "config", "c", defaultConfigPath, "Full path of config file")
+	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Print body response")
 }
