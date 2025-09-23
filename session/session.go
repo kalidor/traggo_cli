@@ -66,7 +66,7 @@ func (t *Traggo) Request(command, method string, postBody, model any) error {
 	return nil
 }
 
-func (t *Traggo) Ping() bool {
+func (t *Traggo) Ping() error {
 	op := OperationWithoutVariables{
 		OperationName: "CurrentUser",
 		Query:         "query CurrentUser {\n  user: currentUser {\n    name\n    id\n  }\n}\n",
@@ -74,22 +74,21 @@ func (t *Traggo) Ping() bool {
 	var body []byte
 	body, err := json.Marshal(op)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	req, err := http.NewRequest("POST", t.Url, bytes.NewReader(body))
 	if err != nil {
-		panic(err)
+		return err
 	}
 	req.Header.Add("Content-Type", "application/json")
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	if res.StatusCode != 200 {
-		log.Fatal("Ping Authentication failure")
-		return false
+		return fmt.Errorf("Expected HTTP 200. Got '%s'", res.Status)
 	}
-	return true
+	return nil
 }
 
 func RequestPermanentTokenAndTest(url, login, password string) (string, error) {
@@ -124,8 +123,8 @@ func RequestPermanentTokenAndTest(url, login, password string) (string, error) {
 
 	// Test connectivity
 	c := config.NewConfig(url, d.Data.Login.Token)
-	if !NewTraggoSession(c).Ping() {
-		fmt.Println("Unable to request the API")
+	err = NewTraggoSession(c).Ping()
+	if err != nil {
 		return "", err
 	}
 	return d.Data.Login.Token, nil

@@ -16,8 +16,9 @@ var (
 		Run: func(cmd *cobra.Command, args []string) {
 			c := config.LoadConfig(configPath)
 			s := session.NewTraggoSession(c)
-			if !s.Ping() {
-				fmt.Println("Unable to request the API")
+			err := s.Ping()
+			if err != nil {
+				fmt.Println("Unable to request the API", err)
 			}
 			fmt.Println("Ping success!")
 		},
