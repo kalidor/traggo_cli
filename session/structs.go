@@ -147,6 +147,7 @@ func (t TimerTask) Export() []string {
 	}
 }
 
+// PrettyPrint is used for Generic task
 func (t TimerTask) PrettyPrint(colors config.ColorsDef) {
 	rows := [][]string{t.Export()}
 	ta := table.New().
@@ -220,10 +221,10 @@ func (t TimeSpanTask) Export() []string {
 
 	return []string{
 		fmt.Sprintf("%d", t.Id),
+		strings.Join(t.ExportTags(), "\n"),
 		t.Start.Format(time.DateTime),
 		t.End.Format(time.DateTime),
 		duration.Round(time.Second).String(),
-		strings.Join(t.ExportTags(), "\n"),
 		t.Note,
 	}
 }
@@ -233,7 +234,7 @@ func (t TimeSpanTask) PrettyPrint(colors config.ColorsDef) {
 	ta := table.New().
 		// Border(lipgloss.ThickBorder()).
 		BorderStyle(BorderStyle).
-		Headers("ID", "StartedAt", "EndedAt", "Time", "Tags", "Note").
+		Headers("ID", "Tags", "StartedAt", "EndedAt", "Time", "Note").
 		StyleFunc(func(row, col int) lipgloss.Style {
 			var style lipgloss.Style
 
@@ -250,14 +251,14 @@ func (t TimeSpanTask) PrettyPrint(colors config.ColorsDef) {
 			switch col {
 			case 0: // Id
 				style = style.Width(5)
-			case 1, 2: // StartedAt & EndedAt
+			case 2, 3: // StartedAt & EndedAt
 				style = style.Width(23)
-			case 3: // Time
+			case 4: // Time
 				style = style.Width(10)
-			case 4: // Tags
+			case 1: // Tags
 				style = style.Width(30)
 				for _, c := range colors.Tags {
-					if strings.Contains(rows[row][4], fmt.Sprintf("%s:%s", c.TagName, c.TagValue)) {
+					if strings.Contains(rows[row][1], fmt.Sprintf("%s:%s", c.TagName, c.TagValue)) {
 						return style.Width(30).Foreground(c.Color)
 					}
 				}
@@ -399,7 +400,7 @@ func (t TimeSpanTaskList) PrettyPrint(colors config.ColorsDef, highlight string)
 	ta := table.New().
 		// Border(lipgloss.ThickBorder()).
 		BorderStyle(BorderStyle).
-		Headers("ID", "StartedAt", "EndedAt", "Time", "Tags", "Note").
+		Headers("ID", "Tags", "StartedAt", "EndedAt", "Time", "Note").
 		StyleFunc(func(row, col int) lipgloss.Style {
 			var style lipgloss.Style
 
@@ -420,14 +421,14 @@ func (t TimeSpanTaskList) PrettyPrint(colors config.ColorsDef, highlight string)
 			switch col {
 			case 0: // Id
 				style = style.Width(5)
-			case 1, 2: // StartedAt & EndedAt
+			case 2, 3: // StartedAt & EndedAt
 				style = style.Width(23)
-			case 3: // Time
+			case 4: // Time
 				style = style.Width(10)
-			case 4: // Tags
+			case 1: // Tags
 				style = style.Width(30)
 				for _, c := range colors.Tags {
-					if strings.Contains(rows[row][4], fmt.Sprintf("%s:%s", c.TagName, c.TagValue)) {
+					if strings.Contains(rows[row][1], fmt.Sprintf("%s:%s", c.TagName, c.TagValue)) {
 						return style.Width(30).Foreground(c.Color)
 					}
 				}
