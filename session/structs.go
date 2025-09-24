@@ -147,46 +147,10 @@ func (t TimerTask) Export() []string {
 	}
 }
 
-// PrettyPrint is used for Generic task
 func (t TimerTask) PrettyPrint(colors config.ColorsDef) {
-	rows := [][]string{t.Export()}
-	ta := table.New().
-		// Border(lipgloss.ThickBorder()).
-		BorderStyle(BorderStyle).
-		Headers("ID", "Tags", "StartedAt", "Note").
-		StyleFunc(func(row, col int) lipgloss.Style {
-			var style lipgloss.Style
-
-			switch {
-			case row == table.HeaderRow:
-				return baseStyle.Foreground(colors.Table.HeaderStyle).Bold(true)
-			case row%2 == 0:
-				style = CellStyle.Foreground(colors.Table.EvenStyle)
-			default:
-				style = CellStyle.Foreground(colors.Table.OddStyle)
-			}
-
-			// Make the second column a little wider.
-			switch col {
-			case 0: // Id
-				style = style.Width(5)
-			case 1: // Tags
-				style = style.Width(25)
-				for _, c := range colors.Tags {
-					if strings.Contains(rows[row][1], fmt.Sprintf("%s:%s", c.TagName, c.TagValue)) {
-						return style.Width(25).Foreground(c.Color)
-					}
-				}
-			case 2: // StartedAt
-				style = style.Width(23)
-			case 3: // Note
-				style = style.Width(30)
-			}
-
-			return style
-		}).
-		Rows(rows...)
-	fmt.Println(ta)
+	var l TimersData
+	l.Timers = append(l.Timers, t)
+	l.PrettyPrint(colors, "")
 }
 
 func (t TimerTask) String() string {
@@ -196,7 +160,6 @@ func (t TimerTask) String() string {
 	}
 
 	return s
-
 }
 
 func (t TimeSpanTask) GetId() int {
@@ -230,46 +193,9 @@ func (t TimeSpanTask) Export() []string {
 }
 
 func (t TimeSpanTask) PrettyPrint(colors config.ColorsDef) {
-	rows := [][]string{t.Export()}
-	ta := table.New().
-		// Border(lipgloss.ThickBorder()).
-		BorderStyle(BorderStyle).
-		Headers("ID", "Tags", "StartedAt", "EndedAt", "Time", "Note").
-		StyleFunc(func(row, col int) lipgloss.Style {
-			var style lipgloss.Style
-
-			switch {
-			case row == table.HeaderRow:
-				return baseStyle.Foreground(colors.Table.HeaderStyle).Bold(true)
-			case row%2 == 0:
-				style = CellStyle.Foreground(colors.Table.EvenStyle)
-			default:
-				style = CellStyle.Foreground(colors.Table.OddStyle)
-			}
-
-			// Change width for some column
-			switch col {
-			case 0: // Id
-				style = style.Width(5)
-			case 2, 3: // StartedAt & EndedAt
-				style = style.Width(23)
-			case 4: // Time
-				style = style.Width(10)
-			case 1: // Tags
-				style = style.Width(30)
-				for _, c := range colors.Tags {
-					if strings.Contains(rows[row][1], fmt.Sprintf("%s:%s", c.TagName, c.TagValue)) {
-						return style.Width(30).Foreground(c.Color)
-					}
-				}
-			case 5: // Note
-				style = style.Width(30)
-			}
-
-			return style
-		}).
-		Rows(rows...)
-	fmt.Println(ta)
+	var l TimeSpanTaskList
+	l = append(l, t)
+	l.PrettyPrint(colors, "")
 }
 
 type TimeSpanTask struct {
