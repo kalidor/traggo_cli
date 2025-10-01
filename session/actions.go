@@ -12,6 +12,14 @@ import (
 	"github.com/kalidor/traggo_cli/config"
 )
 
+type createTimeSpanData struct {
+	Data TimerTask `json:"createTimeSpan"`
+}
+type createTimeSpanRoot struct {
+	Data   createTimeSpanData `json:"data"`
+	Errors []Error            `json:"errors"`
+}
+
 func (t *Traggo) Start(tags []string, note string) {
 	var splitedSlice []Tag
 	for _, tag := range tags {
