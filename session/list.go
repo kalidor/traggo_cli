@@ -63,3 +63,37 @@ func (t *Traggo) ListCurrentTasks() TimersData {
 
 	return tasks.Data
 }
+
+func (t *Traggo) ListCompleteTasks() TimeSpanTaskList {
+	op := OperationCursor{
+		OperationName: "TimeSpans",
+		Variables: VariablesCursor{
+			Cursor: CursorRequest{Offset: 0, PageSize: 100},
+		},
+		Query: "query TimeSpans($cursor: InputCursor!) {\n  timeSpans(cursor: $cursor) {\n    timeSpans {\n      id\n      start\n      end\n      tags {\n        key\n        value\n        __typename\n      }\n      oldStart\n      note\n      __typename\n    }\n    cursor {hasMore\n      startId\n      offset\n      pageSize\n      __typename\n    }\n    __typename\n  }\n}\n",
+	}
+
+	var tasks TimeSpanTaskList
+
+	for {
+		var d TimeSpanRoot
+		err := t.Request(
+			"ListCompleteTasks",
+			"POST",
+			op,
+			&d,
+		)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		tasks = append(tasks, d.Data.TimeSpans.TimeSpans...)
+
+		// stop the pagination loop
+		if !d.Data.TimeSpans.Cursor.HasMore {
+			break
+		}
+		op.Variables.Cursor.Offset = d.Data.TimeSpans.Cursor.Offset
+	}
+	return tasks
+}
