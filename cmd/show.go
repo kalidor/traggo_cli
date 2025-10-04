@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -32,7 +33,7 @@ var showCmd = &cobra.Command{
 			if res == nil {
 				continue
 			}
-			res.PrettyPrint(c.Colors)
+			fmt.Println(res.PreparePretty(c.Colors))
 		}
 		return nil
 	},

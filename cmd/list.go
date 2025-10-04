@@ -100,7 +100,7 @@ var (
 					if tasks.IsEmpty() {
 						return nil
 					}
-					tasks.PrettyPrint(c.Colors, highlight)
+					fmt.Println(tasks.PreparePretty(c.Colors, highlight))
 				} else {
 					endDate = time.Now()
 					delta(endDate, &startDate)
@@ -115,13 +115,13 @@ var (
 				if doneTasks.IsEmpty() {
 					return nil
 				}
-				doneTasks.PrettyPrint(c.Colors, highlight)
+				fmt.Println(doneTasks.PreparePretty(c.Colors, highlight))
 
 				tasks := s.ListCurrentTasks()
 				if tasks.IsEmpty() {
 					return nil
 				}
-				tasks.PrettyPrint(c.Colors, highlight)
+				fmt.Println(tasks.PreparePretty(c.Colors, highlight))
 				return nil
 			}
 
@@ -136,7 +136,7 @@ var (
 				if tasks.IsEmpty() {
 					return nil
 				}
-				tasks.PrettyPrint(c.Colors, highlight)
+				fmt.Println(tasks.PreparePretty(c.Colors, highlight))
 			}
 
 			return nil

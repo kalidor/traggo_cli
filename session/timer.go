@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	bubblesTable "github.com/charmbracelet/bubbles/table"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/table"
 	"github.com/kalidor/traggo_cli/config"
@@ -49,10 +50,10 @@ func (t TimerTask) Export() []string {
 	}
 }
 
-func (t TimerTask) PrettyPrint(colors config.ColorsDef) {
+func (t TimerTask) PreparePretty(colors config.ColorsDef) string {
 	var l TimersData
 	l.Timers = append(l.Timers, t)
-	l.PrettyPrint(colors, "")
+	return l.PreparePretty(colors)
 }
 
 func (t TimerTask) String() string {
@@ -73,7 +74,12 @@ type TimerTasks struct {
 	Errors []Error    `json:"errors"`
 }
 
-func (t TimersData) PrettyPrint(colors config.ColorsDef, highlight string) {
+// highlights variadic parameters will only handle no parameter or just one
+func (t TimersData) PreparePretty(colors config.ColorsDef, highlights ...string) string {
+	var highlight string
+	if len(highlights) > 0 {
+		highlight = highlights[0]
+	}
 	rows := make([][]string, len(t.Timers))
 
 	for index, task := range t.Timers {
@@ -121,5 +127,14 @@ func (t TimersData) PrettyPrint(colors config.ColorsDef, highlight string) {
 			return style
 		}).
 		Rows(rows...)
-	fmt.Println(ta)
+	return ta.String()
+}
+
+func (t TimersData) ToBubbleRow() []bubblesTable.Row {
+
+	var r []bubblesTable.Row
+	for _, task := range t.Timers {
+		r = append(r, bubblesTable.Row{fmt.Sprintf("%d", task.Id), strings.Join(task.ExportTags(), ", "), task.Start.Format(time.DateTime), "-"})
+	}
+	return r
 }

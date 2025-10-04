@@ -50,7 +50,7 @@ func (t *Traggo) Start(tags []string, note string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	d.Data.Data.PrettyPrint(t.Colors)
+	d.Data.Data.PreparePretty(t.Colors)
 
 }
 
@@ -77,7 +77,7 @@ func (t *Traggo) Stop(colors config.ColorsDef, ids []int) {
 		if err != nil {
 			log.Fatal(err)
 		}
-		d.PrettyPrint(colors)
+		d.PreparePretty(colors)
 	}
 }
 

@@ -41,7 +41,7 @@ var (
 type GenericTask interface {
 	GetId() int
 	GetStart() time.Time
-	PrettyPrint(config.ColorsDef)
+	PreparePretty(config.ColorsDef) string
 }
 
 type Error struct {
