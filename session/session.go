@@ -36,6 +36,17 @@ type TraggoAuthResponse struct {
 	Data DataLogin `json:"data"`
 }
 
+type TraggoUserData struct {
+	Name string `json:"name"`
+	Id   int    `json:"id"`
+}
+type TraggoUser struct {
+	User *TraggoUserData `json:"user,omitempty"`
+}
+type TraggoCheckResponse struct {
+	Data TraggoUser `json:"data"`
+}
+
 func (t *Traggo) Request(command, method string, postBody, model any) error {
 	var body []byte
 	body, err := json.Marshal(postBody)
@@ -43,13 +54,13 @@ func (t *Traggo) Request(command, method string, postBody, model any) error {
 		panic(err)
 	}
 
-	req, err := http.NewRequest("POST", t.Url, bytes.NewReader(body))
+	req, err := http.NewRequest(method, t.Url, bytes.NewReader(body))
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("Cookie", t.Token)
+	req.Header.Add("Cookie", fmt.Sprintf("traggo=%s", t.Token))
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -72,22 +83,11 @@ func (t *Traggo) Ping() error {
 		OperationName: "CurrentUser",
 		Query:         "query CurrentUser {\n  user: currentUser {\n    name\n    id\n  }\n}\n",
 	}
-	var body []byte
-	body, err := json.Marshal(op)
-	if err != nil {
-		return err
-	}
-	req, err := http.NewRequest("POST", t.Url, bytes.NewReader(body))
-	if err != nil {
-		return err
-	}
-	req.Header.Add("Content-Type", "application/json")
-	res, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return err
-	}
-	if res.StatusCode != 200 {
-		return fmt.Errorf("Expected HTTP 200. Got '%s'", res.Status)
+
+	var r TraggoCheckResponse
+	t.Request("CurrentUser", "POST", op, &r)
+	if r.Data.User == nil {
+		return fmt.Errorf("successfully access traggo, but got no information about user. Check token")
 	}
 	return nil
 }

@@ -19,6 +19,7 @@ var (
 			err := s.Ping()
 			if err != nil {
 				fmt.Println("Unable to request the API", err)
+				return
 			}
 			fmt.Println("Ping success!")
 		},
