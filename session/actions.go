@@ -65,7 +65,6 @@ func (t *Traggo) Stop(colors config.ColorsDef, ids []int) {
 	}
 
 	for _, id := range ids {
-		fmt.Printf("Stopping: %d \n", id)
 		op.Variables.Id = id
 		var d TimeSpanTask
 		err := t.Request(
@@ -128,7 +127,7 @@ func (t *Traggo) UpdateTimerTask(task TimerTask) {
 	var body []byte
 	body, err := json.Marshal(op)
 	if err != nil {
-		panic(err)
+		panic(fmt.Errorf("COIncoin: %s", err.Error()))
 	}
 
 	req, err := http.NewRequest("POST", t.Url, bytes.NewReader(body))

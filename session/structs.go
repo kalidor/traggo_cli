@@ -38,10 +38,22 @@ var (
 			String()
 )
 
+type taskType int
+
+const (
+	TypeTimerTask taskType = iota
+	TypeTimeSpanTask
+)
+
 type GenericTask interface {
 	GetId() int
+	GetNote() string
 	GetStart() time.Time
+	GetStartString() string
+	GetStopString() string
 	PreparePretty(config.ColorsDef) string
+	Type() taskType
+	Update(start, stop, note string, tags []string) GenericTask
 }
 
 type Error struct {

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	config "github.com/kalidor/traggo_cli/config"
 	session "github.com/kalidor/traggo_cli/session"
@@ -19,13 +18,6 @@ var liveCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		c := config.LoadConfig(configPath)
 		s := session.NewTraggoSession(c)
-		columns := []table.Column{
-			{Title: "Id", Width: 4},
-			{Title: "Tags", Width: 35},
-			{Title: "StartedAt", Width: 20},
-			{Title: "EndedAt", Width: 20},
-		}
-		rows := s.ListCurrentTasks().ToBubbleRow()
 
 		var dump *os.File
 		if _, ok := os.LookupEnv("DEBUG"); ok {
@@ -35,7 +27,7 @@ var liveCmd = &cobra.Command{
 				os.Exit(1)
 			}
 		}
-		m := tui.NewModel(dump, configPath, columns, rows)
+		m, _ := tui.NewMainModel(dump, s, tui.TableViewCurrent)
 
 		if _, err := tea.NewProgram(m).Run(); err != nil {
 			fmt.Println("Error running program:", err)
