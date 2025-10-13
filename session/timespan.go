@@ -9,6 +9,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/table"
 	"github.com/kalidor/traggo_cli/config"
+	"github.com/kalidor/traggo_cli/utils"
 )
 
 type Cursor struct {
@@ -45,23 +46,6 @@ type TimeSpanTasks struct {
 	Errors []Error      `json:"errors"`
 }
 
-func (t TimeSpanTask) GetId() int {
-	return t.Id
-}
-
-func (t TimeSpanTask) GetStart() time.Time {
-	return t.Start
-}
-
-func (t TimeSpanTask) String() string {
-	duration := t.End.Sub(t.Start)
-	s := fmt.Sprintf("%s [%d] \n  - start: %s\n  - started from now: %s\n  - end: %s\n", strings.Join(t.ExportTags(), ","), t.Id, t.Start.Format(time.DateTime), duration.Round(time.Second).String(), t.End.Format(time.DateTime))
-	if len(t.Note) > 0 {
-		s = fmt.Sprintf("%s  - note: %s\n", s, t.Note)
-	}
-	return s
-}
-
 func (t TimeSpanTask) Export() []string {
 	duration := t.End.Sub(t.Start)
 
@@ -75,14 +59,47 @@ func (t TimeSpanTask) Export() []string {
 	}
 }
 
+func (t TimeSpanTaskList) IsEmpty() bool {
+	return len(t) == 0
+}
+
+func (t TimeSpanTask) GetId() int {
+	return t.Id
+}
+
+func (t TimeSpanTask) GetNote() string {
+	return t.Note
+}
+
+func (t TimeSpanTask) GetStart() time.Time {
+	return t.Start
+}
+
+func (t TimeSpanTask) GetStartString() string {
+	return t.Start.Format(time.DateTime)
+}
+
+func (t TimeSpanTask) GetStop() time.Time {
+	return t.End
+}
+
+func (t TimeSpanTask) GetStopString() string {
+	return t.End.Format(time.DateTime)
+}
+
+func (t TimeSpanTask) String() string {
+	duration := t.End.Sub(t.Start)
+	s := fmt.Sprintf("%s [%d] \n  - start: %s\n  - started from now: %s\n  - end: %s\n", strings.Join(t.ExportTags(), ","), t.Id, t.Start.Format(time.DateTime), duration.Round(time.Second).String(), t.End.Format(time.DateTime))
+	if len(t.Note) > 0 {
+		s = fmt.Sprintf("%s  - note: %s\n", s, t.Note)
+	}
+	return s
+}
+
 func (t TimeSpanTask) PreparePretty(colors config.ColorsDef) string {
 	var l TimeSpanTaskList
 	l = append(l, t)
 	return l.PreparePretty(colors)
-}
-
-func (t TimeSpanTaskList) IsEmpty() bool {
-	return len(t) == 0
 }
 
 // highlights variadic parameters will only handle no parameter or just one
@@ -148,4 +165,32 @@ func (t TimeSpanTaskList) ToBubbleRow() []bubblesTable.Row {
 		r = append(r, bubblesTable.Row{fmt.Sprintf("%d", task.Id), strings.Join(task.ExportTags(), ", "), task.Start.Format(time.DateTime), task.End.Format(time.DateTime)})
 	}
 	return r
+}
+
+func (t TimeSpanTask) Type() taskType {
+	return TypeTimeSpanTask
+}
+
+// Update current TimerTask.
+// stop is not used since this is a current task
+func (t TimeSpanTask) Update(start, stop, note string, tagsString []string) GenericTask {
+	_start, _ := utils.StrToTime(start, time.DateTime)
+	_end, _ := utils.StrToTime(stop, time.DateTime)
+
+	var tags []Tag
+	for _, tag := range tagsString {
+		if strings.Contains(tag, ":") {
+			s := strings.SplitN(tag, ":", 2)
+			tags = append(tags, Tag{Key: s[0], Value: s[1]})
+		}
+	}
+	return TimeSpanTask{
+		TimerTask: TimerTask{
+			Id:    t.Id,
+			Start: _start,
+			Tags:  tags,
+			Note:  note,
+		},
+		End: _end,
+	}
 }
