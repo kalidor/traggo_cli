@@ -22,7 +22,8 @@ func NewTraggoSession(config *config.Config) *Traggo {
 	return &Traggo{
 		Url:    config.Auth.Url,
 		Token:  config.Auth.Token,
-		Colors: config.Colors}
+		Colors: config.Colors,
+	}
 }
 
 type Login struct {

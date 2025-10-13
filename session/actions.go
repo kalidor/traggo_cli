@@ -50,7 +50,7 @@ func (t *Traggo) Start(tags []string, note string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	d.Data.Data.PrettyPrint(t.Colors)
+	d.Data.Data.PreparePretty(t.Colors)
 
 }
 
@@ -65,7 +65,6 @@ func (t *Traggo) Stop(colors config.ColorsDef, ids []int) {
 	}
 
 	for _, id := range ids {
-		fmt.Printf("Stopping: %d \n", id)
 		op.Variables.Id = id
 		var d TimeSpanTask
 		err := t.Request(
@@ -77,7 +76,7 @@ func (t *Traggo) Stop(colors config.ColorsDef, ids []int) {
 		if err != nil {
 			log.Fatal(err)
 		}
-		d.PrettyPrint(colors)
+		d.PreparePretty(colors)
 	}
 }
 
@@ -128,7 +127,7 @@ func (t *Traggo) UpdateTimerTask(task TimerTask) {
 	var body []byte
 	body, err := json.Marshal(op)
 	if err != nil {
-		panic(err)
+		panic(fmt.Errorf("COIncoin: %s", err.Error()))
 	}
 
 	req, err := http.NewRequest("POST", t.Url, bytes.NewReader(body))

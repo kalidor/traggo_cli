@@ -104,7 +104,7 @@ var (
 						currentTimerTask.Tags = tagsStruct
 					}
 				}
-				currentTimerTask.PrettyPrint(c.Colors)
+				fmt.Println(currentTimerTask.PreparePretty(c.Colors))
 				s.UpdateTimerTask(currentTimerTask)
 				return nil
 			}
@@ -167,7 +167,7 @@ var (
 					currentTask.Tags = tagsStruct
 				}
 			}
-			currentTask.PrettyPrint(c.Colors)
+			fmt.Println(currentTask.PreparePretty(c.Colors))
 			s.UpdateTimeSpanTask(currentTask)
 			return nil
 		},
