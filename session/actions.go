@@ -1,11 +1,7 @@
 package session
 
 import (
-	"bytes"
-	"encoding/json"
-	"fmt"
 	"log"
-	"net/http"
 	"strings"
 	"time"
 
@@ -90,25 +86,7 @@ func (t *Traggo) Delete(ids []int) {
 	}
 	for _, id := range ids {
 		op.Variables.Id = id
-		body, err := json.Marshal(op)
-		if err != nil {
-			panic(err)
-		}
-
-		req, err := http.NewRequest("POST", t.Url, bytes.NewReader(body))
-		if err != nil {
-			log.Fatal(err)
-		}
-		req.Header.Add("Content-Type", "application/json")
-		req.Header.Add("Cookie", t.Token)
-
-		res, err := http.DefaultClient.Do(req)
-		if err != nil {
-			log.Fatal(err)
-		}
-		if res.StatusCode != 200 {
-			log.Fatal("Deleting task failure")
-		}
+		t.Request("RemoveTimeSpan", "POST", op, nil)
 	}
 }
 
@@ -124,27 +102,8 @@ func (t *Traggo) UpdateTimerTask(task TimerTask) {
 		},
 		Query: "mutation UpdateTimeSpan($id: Int!, $start: Time!, $tags: [InputTimeSpanTag!], $note: String!) {\n  updateTimeSpan(id: $id, start: $start, tags: $tags, note: $note) {\n    id\n    start\n    tags {\n      key\n      value\n      __typename\n    }\n   note\n    __typename\n  }\n}\n",
 	}
-	var body []byte
-	body, err := json.Marshal(op)
-	if err != nil {
-		panic(fmt.Errorf("COIncoin: %s", err.Error()))
-	}
+	t.Request("UpdateTimeSpan", "POST", op, nil)
 
-	req, err := http.NewRequest("POST", t.Url, bytes.NewReader(body))
-	if err != nil {
-		log.Fatal(err)
-	}
-	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("Cookie", t.Token)
-
-	res, err := http.DefaultClient.Do(req)
-	if err != nil {
-		log.Fatal(err)
-	}
-	if res.StatusCode != 200 {
-		fmt.Println("Updating task failure")
-		fmt.Println(res.Status)
-	}
 }
 
 func (t *Traggo) UpdateTimeSpanTask(task TimeSpanTask) {
@@ -160,27 +119,7 @@ func (t *Traggo) UpdateTimeSpanTask(task TimeSpanTask) {
 		},
 		Query: "mutation UpdateTimeSpan($id: Int!, $start: Time!, $end: Time, $tags: [InputTimeSpanTag!], $oldStart: Time, $note: String!) {\n  updateTimeSpan(id: $id, start: $start, end: $end, tags: $tags, oldStart: $oldStart, note: $note) {\n    id\n    start\n    end\n    tags {\n      key\n      value\n      __typename\n    }\n    oldStart\n    note\n    __typename\n  }\n}\n",
 	}
-	var body []byte
-	body, err := json.Marshal(op)
-	if err != nil {
-		panic(err)
-	}
-
-	req, err := http.NewRequest("POST", t.Url, bytes.NewReader(body))
-	if err != nil {
-		log.Fatal(err)
-	}
-	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("Cookie", t.Token)
-
-	res, err := http.DefaultClient.Do(req)
-	if err != nil {
-		log.Fatal(err)
-	}
-	if res.StatusCode != 200 {
-		fmt.Println("Updating task failure")
-		fmt.Println(res.Status)
-	}
+	t.Request("UpdateTimeSpanTask", "POST", op, nil)
 }
 
 func (t *Traggo) Continue(task GenericTask) {
@@ -192,25 +131,6 @@ func (t *Traggo) Continue(task GenericTask) {
 		},
 		Query: "mutation Continue($id: Int!, $start: Time!) {\n  copyTimeSpan(id: $id, start: $start) {\n    id\n    start\n    __typename\n  }\n}",
 	}
-	var body []byte
-	body, err := json.Marshal(op)
-	if err != nil {
-		panic(err)
-	}
+	t.Request("Continue", "POST", op, nil)
 
-	req, err := http.NewRequest("POST", t.Url, bytes.NewReader(body))
-	if err != nil {
-		log.Fatal(err)
-	}
-	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("Cookie", t.Token)
-
-	res, err := http.DefaultClient.Do(req)
-	if err != nil {
-		log.Fatal(err)
-	}
-	if res.StatusCode != 200 {
-		fmt.Println("Continuing task failure")
-		fmt.Println(res.Status)
-	}
 }
