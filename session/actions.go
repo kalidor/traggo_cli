@@ -28,7 +28,7 @@ func (t *Traggo) Start(tags []string, note string) {
 	op := OperationUpdate{
 		OperationName: "StartTimer",
 		Variables: VariablesUpdate{
-			Start: time.Now(),
+			Start: time.Now().UTC().Add(time.Hour * 2),
 			Tags:  splitedSlice,
 			Note:  note,
 		},
@@ -55,7 +55,7 @@ func (t *Traggo) Stop(colors config.ColorsDef, ids []int) {
 		OperationName: "StopTimer",
 		Variables: VariablesUpdate{
 			Id:  0,
-			End: time.Now(),
+			End: time.Now().UTC().Add(time.Hour * 2),
 		},
 		Query: "mutation StopTimer($id: Int!, $end: Time!) {\n  stopTimeSpan(id: $id, end: $end) {\n    id\n    start\n    end\n    tags {\n      key\n      value\n      __typename\n    }\n    oldStart\n    note\n    __typename\n  }\n}\n",
 	}
