@@ -17,7 +17,7 @@ var continueCmd = &cobra.Command{
 	Short: "continue a previous task",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) != 1 {
-			return errors.New("this command requiers one task id/ticket id")
+			return errors.New("this command requiers one task_id or TagName:TagValue")
 		}
 		c := config.LoadConfig(configPath)
 		s := session.NewTraggoSession(c)
@@ -25,13 +25,13 @@ var continueCmd = &cobra.Command{
 		re := regexp.MustCompile(`(?P<TagName>[[:word:]]*):(?P<TagValue>[a-zA-Z_\-0-9]+)`)
 		matches := re.FindStringSubmatch(args[0])
 		if len(matches) > 0 {
+			// Let's look by 'TagName & TagValue'
 			nIndex := re.SubexpIndex("TagName")
 			tagName := matches[nIndex]
 			tIndex := re.SubexpIndex("TagValue")
 			tagValue := matches[tIndex]
 
 			task = s.SearchTaskByTag(tagName, tagValue)
-			// Let's look for this ticket in all tasks in tag 'ticket'
 		} else {
 			// Let's look for this id in all tasks
 			argInt, err := strconv.Atoi(args[0])
