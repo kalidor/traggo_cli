@@ -38,7 +38,7 @@ type addModel struct {
 func initAdd(dump io.Writer, session *session.Traggo, mainState sessionState) addModel {
 	var inputs []textinput.Model = make([]textinput.Model, 3)
 	inputs[addTagTicket] = textinput.New()
-	inputs[addTagTicket].Placeholder = "HCS-1234"
+	inputs[addTagTicket].Placeholder = "AA-1234"
 	// inputs[addTagTicket].Focus()
 	inputs[addTagTicket].CharLimit = 20
 	inputs[addTagTicket].Width = 30
