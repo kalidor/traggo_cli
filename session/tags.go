@@ -1,8 +1,9 @@
 package session
 
 import (
+	"encoding/json"
+	"fmt"
 	"log"
-	"strings"
 )
 
 type tag struct {
@@ -20,7 +21,7 @@ type rootTags struct {
 
 func (t tags) Contain(tagName string) bool {
 	for _, tag := range t {
-		if strings.EqualFold(tag.Key, tagName) {
+		if tag.Key == tagName {
 			return true
 		}
 	}
@@ -28,7 +29,7 @@ func (t tags) Contain(tagName string) bool {
 }
 
 func (t *Traggo) GetTags() tags {
-	op := OperationWithoutVariables{
+	op := Operation{
 		OperationName: "Tags",
 		Query:         "query Tags {\n  tags {\n    key\n    usages\n}\n}",
 	}
@@ -46,4 +47,25 @@ func (t *Traggo) GetTags() tags {
 	}
 	return d.Data.Tags
 
+}
+
+func (t *Traggo) RemoveTag(tagName string) {
+	variables := json.RawMessage(fmt.Sprintf(`{"key": "%s"}`, tagName))
+	op := Operation{
+		OperationName: "RemoveTag",
+		Variables:     &variables,
+		Query:         "mutation RemoveTag($key: String!) {\n  removeTag(key: $key) {\n    color\n    key\n  }\n}",
+	}
+
+	// Parse http.Response Boby as JSON and display it
+	var d rootTags
+	err := t.Request(
+		"GetTags",
+		"POST",
+		op,
+		&d,
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
