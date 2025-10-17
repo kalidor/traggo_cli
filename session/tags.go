@@ -2,6 +2,7 @@ package session
 
 import (
 	"log"
+	"strings"
 )
 
 type tag struct {
@@ -15,6 +16,15 @@ type datatags struct {
 }
 type rootTags struct {
 	Data datatags `json:"data"`
+}
+
+func (t tags) Contain(tagName string) bool {
+	for _, tag := range t {
+		if strings.EqualFold(tag.Key, tagName) {
+			return true
+		}
+	}
+	return false
 }
 
 func (t *Traggo) GetTags() tags {

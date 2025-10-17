@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/kalidor/traggo_cli/config"
 )
@@ -16,6 +17,7 @@ type Traggo struct {
 	Token  string
 	Url    string
 	Colors config.ColorsDef
+	Tags   config.TagsDef
 }
 
 func NewTraggoSession(config *config.Config) *Traggo {
@@ -23,6 +25,7 @@ func NewTraggoSession(config *config.Config) *Traggo {
 		Url:    config.Auth.Url,
 		Token:  config.Auth.Token,
 		Colors: config.Colors,
+		Tags:   config.Tags,
 	}
 }
 
@@ -89,6 +92,21 @@ func (t *Traggo) Ping() error {
 	if r.Data.User == nil {
 		return fmt.Errorf("successfully access traggo, but got no information about user. Check token")
 	}
+	return nil
+}
+
+func (t *Traggo) CheckTagsInConfig() error {
+	knownTags := t.GetTags()
+	var unknownTags []string
+	for _, cTag := range t.Tags {
+		if !knownTags.Contain(cTag.TagName) {
+			unknownTags = append(unknownTags, cTag.TagName)
+		}
+	}
+	if len(unknownTags) > 0 {
+		return fmt.Errorf("unknown tags: %s", strings.Join(unknownTags, ","))
+	}
+
 	return nil
 }
 

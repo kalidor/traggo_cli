@@ -18,6 +18,11 @@ var liveCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		c := config.LoadConfig(configPath)
 		s := session.NewTraggoSession(c)
+		err := s.CheckTagsInConfig()
+		// TODO: add command to force tag creation
+		if err != nil {
+			panic(err)
+		}
 
 		var dump *os.File
 		if _, ok := os.LookupEnv("DEBUG"); ok {

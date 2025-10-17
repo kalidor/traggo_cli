@@ -3,11 +3,14 @@ package tui
 import (
 	"fmt"
 	"io"
+	"sort"
+	"strings"
 
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/kalidor/traggo_cli/config"
 	session "github.com/kalidor/traggo_cli/session"
 )
 
@@ -33,28 +36,26 @@ type addModel struct {
 	help    help.Model
 	inputs  []textinput.Model
 	keys    addKeyMap
+	new     bool
 }
 
 func initAdd(dump io.Writer, session *session.Traggo, mainState sessionState) addModel {
-	var inputs []textinput.Model = make([]textinput.Model, 3)
-	inputs[addTagTicket] = textinput.New()
-	inputs[addTagTicket].Placeholder = "AA-1234"
-	// inputs[addTagTicket].Focus()
-	inputs[addTagTicket].CharLimit = 20
-	inputs[addTagTicket].Width = 30
-	inputs[addTagTicket].Prompt = ""
+	numTags := len(session.Tags)
+	var inputs []textinput.Model = make([]textinput.Model, numTags+1) // +1 for Note
+	sort.Sort(config.ByPosition(session.Tags))
 
-	inputs[addTagType] = textinput.New()
-	inputs[addTagType].Placeholder = "doc/review/mdbi"
-	inputs[addTagType].CharLimit = 20
-	inputs[addTagType].Width = 30
-	inputs[addTagType].Prompt = ""
+	for index, tag := range session.Tags {
+		inputs[index] = textinput.New()
+		inputs[index].Placeholder = tag.TagValueExample //"AA-1234"
+		inputs[index].CharLimit = tag.CharLimit
+		inputs[index].Width = tag.Width
+	}
 
-	inputs[addNote] = textinput.New()
-	inputs[addNote].Placeholder = "blablabla"
-	inputs[addNote].CharLimit = 100
-	inputs[addNote].Width = 150
-	inputs[addNote].Prompt = ""
+	inputs[numTags] = textinput.New()
+	inputs[numTags].Placeholder = "blablabla"
+	inputs[numTags].CharLimit = 100
+	inputs[numTags].Width = 150
+	inputs[numTags].Prompt = ""
 
 	help := help.New()
 	help.ShowAll = true
@@ -68,6 +69,7 @@ func initAdd(dump io.Writer, session *session.Traggo, mainState sessionState) ad
 		help:    help,
 		inputs:  inputs,
 		keys:    addKeys,
+		new:     false,
 	}
 }
 
@@ -77,24 +79,18 @@ func (a addModel) Init() tea.Cmd {
 
 func (a addModel) View() string {
 	helpView := a.help.View(a.keys)
-	return fmt.Sprintf(
-		`%s: %s
-%s : %s
-%s: %s
-
-%s
-
-%s
- `,
-		inputStyle.Width(6).Render("Ticket"),
-		a.inputs[addTagTicket].View(),
-		inputStyle.Width(6).Render("Type"),
-		a.inputs[addTagType].View(),
-		inputStyle.Width(6).Render("Note"),
-		a.inputs[addNote].View(),
-		continueStyle.Render("Continue ->"),
-		helpView,
+	var view []string
+	for index, tag := range a.session.Tags {
+		view = append(view,
+			fmt.Sprintf("%s: %s", inputStyle.Width(6).Render(tag.TagName), a.inputs[index].View()))
+	}
+	view = append(view,
+		fmt.Sprintf("%s: %s", inputStyle.Width(6).Render("Note"), a.inputs[len(a.session.Tags)].View()))
+	view = append(view,
+		fmt.Sprintf("\n%s\n\n%s", continueStyle.Render("Continue ->"),
+			helpView),
 	)
+	return strings.Join(view, "\n")
 }
 
 // nextInput focuses the next input field
@@ -130,23 +126,18 @@ func (a addModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyEnter:
 			if a.focused == len(a.inputs)-1 {
 				var tags []string
-				ticket := a.inputs[addTagTicket].Value()
-				tag := a.inputs[addTagType].Value()
-				if ticket == "" && tag == "" {
-
-				} else {
-					if ticket != "" {
-						tags = append(tags, fmt.Sprintf("ticket:%s", ticket))
+				for index, tag := range a.session.Tags {
+					v := a.inputs[index].Value()
+					if v == "" {
+						continue
 					}
-					if tag != "" {
-						tags = append(tags, fmt.Sprintf("type:%s", tag))
-					}
-
-					a.session.Start(tags, a.inputs[addNote].Value())
-					a.Reset()
-					return NewMainModel(a.dump, a.session, a.state)
-
+					tags = append(tags, fmt.Sprintf("%s:%s", tag.TagName, v))
 				}
+
+				a.session.Start(tags, a.inputs[len(a.session.Tags)].Value())
+				a.Reset()
+				return NewMainModel(a.dump, a.session, a.state)
+
 			}
 			a.nextInput()
 
@@ -166,7 +157,7 @@ func (a addModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		for i := range a.inputs {
 			a.inputs[i].Blur()
 		}
-		if a.focused != -1 {
+		if a.focused < len(a.inputs) && a.focused >= 0 {
 			a.inputs[a.focused].Focus()
 		}
 
