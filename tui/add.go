@@ -49,6 +49,7 @@ func initAdd(dump io.Writer, session *session.Traggo, mainState sessionState) ad
 		inputs[index].Placeholder = tag.TagValueExample //"AA-1234"
 		inputs[index].CharLimit = tag.CharLimit
 		inputs[index].Width = tag.Width
+		inputs[index].Prompt = ""
 	}
 
 	inputs[numTags] = textinput.New()
@@ -82,7 +83,7 @@ func (a addModel) View() string {
 	var view []string
 	for index, tag := range a.session.Tags {
 		view = append(view,
-			fmt.Sprintf("%s: %s", inputStyle.Width(6).Render(tag.TagName), a.inputs[index].View()))
+			fmt.Sprintf("%s: %s", inputStyle.Width(6).Render(strings.ToLower(tag.TagName)), a.inputs[index].View()))
 	}
 	view = append(view,
 		fmt.Sprintf("%s: %s", inputStyle.Width(6).Render("Note"), a.inputs[len(a.session.Tags)].View()))
@@ -131,7 +132,7 @@ func (a addModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					if v == "" {
 						continue
 					}
-					tags = append(tags, fmt.Sprintf("%s:%s", tag.TagName, v))
+					tags = append(tags, fmt.Sprintf("%s:%s", strings.ToLower(tag.TagName), v))
 				}
 
 				a.session.Start(tags, a.inputs[len(a.session.Tags)].Value())
