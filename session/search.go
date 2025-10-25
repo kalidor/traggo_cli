@@ -37,13 +37,16 @@ func (t *Traggo) SearchTaskByTag(tagName, tagValue string) GenericTask {
 			}
 		}
 	}
+	variables := struct {
+		Cursor CursorRequest `json:"cursor"`
+	}{
+		Cursor: CursorRequest{Offset: 0, PageSize: 100},
+	}
 	//Search for old tasks
-	op := OperationCursor{
+	op := Operation{
 		OperationName: "TimeSpans",
-		Variables: VariablesCursor{
-			Cursor: CursorRequest{Offset: 0, PageSize: 100},
-		},
-		Query: "query TimeSpans($cursor: InputCursor!) {\n  timeSpans(cursor: $cursor) {\n    timeSpans {\n      id\n      start\n      end\n      tags {\n        key\n        value\n        __typename\n      }\n      oldStart\n      note\n      __typename\n    }\n    cursor {hasMore\n      startId\n      offset\n      pageSize\n      __typename\n    }\n    __typename\n  }\n}\n",
+		Variables:     variables,
+		Query:         "query TimeSpans($cursor: InputCursor!) {\n  timeSpans(cursor: $cursor) {\n    timeSpans {\n      id\n      start\n      end\n      tags {\n        key\n        value\n        __typename\n      }\n      oldStart\n      note\n      __typename\n    }\n    cursor {hasMore\n      startId\n      offset\n      pageSize\n      __typename\n    }\n    __typename\n  }\n}\n",
 	}
 
 	for {
@@ -77,7 +80,11 @@ func (t *Traggo) SearchTaskByTag(tagName, tagValue string) GenericTask {
 			}
 		}
 		if d.Data.TimeSpans.Cursor.HasMore {
-			op.Variables.Cursor.Offset = d.Data.TimeSpans.Cursor.Offset
+			op.Variables = struct {
+				Cursor CursorRequest `json:"cursor"`
+			}{
+				Cursor: CursorRequest{Offset: d.Data.TimeSpans.Cursor.Offset, PageSize: 100},
+			}
 		} else {
 			// stop the pagination loop
 			break

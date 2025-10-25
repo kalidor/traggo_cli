@@ -22,8 +22,8 @@ type DataRootVersion struct {
 	Data RootVersion `json:"data"`
 }
 
-func (t *Traggo) Version() string {
-	op := OperationWithoutVariables{
+func (t *Traggo) GetVersion() Version {
+	op := Operation{
 		OperationName: "Version",
 		Query:         "query Version {  version {    name    commit    buildDate    __typename  }}",
 	}
@@ -53,5 +53,10 @@ func (t *Traggo) Version() string {
 	// Version: Name: 0.7.1
 	// Commit:4aa48b385abb1728e46881964ce90a420a25f590
 	// Build date:2025-04-28T15:21:13Z
-	return fmt.Sprintf("Name: %s\nCommit:%s\nBuild date:%s\n", d.Data.Version.Name, d.Data.Version.Commit, d.Data.Version.BuildDate.Format(time.RFC3339))
+	return d.Data.Version
+}
+
+func (t *Traggo) Version() string {
+	version := t.GetVersion()
+	return fmt.Sprintf("Name: %s\nCommit:%s\nBuild date:%s\n", version.Name, version.Commit, version.BuildDate.Format(time.RFC3339))
 }

@@ -8,14 +8,20 @@ import (
 // ListBetweenDates return []TimeSpanTask{} containing matching tasks
 // between the provided dates
 func (t *Traggo) ListBetweenDates(startDate time.Time, endDate time.Time) TimeSpanTaskList {
-	op := OperationBetweenDate{
+	variables := struct {
+		Start  time.Time     `json:"start"`
+		End    time.Time     `json:"end"`
+		Cursor CursorRequest `json:"cursor"`
+	}{
+		Start:  startDate,
+		End:    endDate,
+		Cursor: CursorRequest{Offset: 0, PageSize: 10},
+	}
+
+	op := Operation{
 		OperationName: "TimeSpans",
-		Variables: VariablesUpdateWithCursor{
-			Start:  startDate,
-			End:    endDate,
-			Cursor: CursorRequest{Offset: 0, PageSize: 10},
-		},
-		Query: "query TimeSpans($start: Time!, $end: Time!, $cursor: InputCursor) {\n  timeSpans(fromInclusive: $start, toInclusive: $end, cursor: $cursor) {\n    timeSpans {\n      id\n      start\n      end\n      tags {\n        key\n        value\n        __typename\n      }\n      oldStart\n      note\n      __typename\n    }\n    cursor {\n      hasMore\n    startId\n      offset\n      pageSize\n      __typename\n    }\n    __typename\n  }\n}\n",
+		Variables:     variables,
+		Query:         "query TimeSpans($start: Time!, $end: Time!, $cursor: InputCursor) {\n  timeSpans(fromInclusive: $start, toInclusive: $end, cursor: $cursor) {\n    timeSpans {\n      id\n      start\n      end\n      tags {\n        key\n        value\n        __typename\n      }\n      oldStart\n      note\n      __typename\n    }\n    cursor {\n      hasMore\n    startId\n      offset\n      pageSize\n      __typename\n    }\n    __typename\n  }\n}\n",
 	}
 	timeSpanTaskSlice := []TimeSpanTask{}
 	for {
@@ -38,7 +44,15 @@ func (t *Traggo) ListBetweenDates(startDate time.Time, endDate time.Time) TimeSp
 			// stop the pagination loop
 			break
 		}
-		op.Variables.Cursor.Offset = d.Data.TimeSpans.Cursor.Offset
+		op.Variables = struct {
+			Start  time.Time     `json:"start"`
+			End    time.Time     `json:"end"`
+			Cursor CursorRequest `json:"cursor"`
+		}{
+			Start:  startDate,
+			End:    endDate,
+			Cursor: CursorRequest{Offset: d.Data.TimeSpans.Cursor.Offset, PageSize: 10},
+		}
 
 	}
 	return timeSpanTaskSlice
@@ -46,7 +60,7 @@ func (t *Traggo) ListBetweenDates(startDate time.Time, endDate time.Time) TimeSp
 
 // ListCurrentTasks return TimerTasks containing current running tasks
 func (t *Traggo) ListCurrentTasks() TimersData {
-	op := OperationWithoutVariables{
+	op := Operation{
 		OperationName: "Trackers",
 		Query:         "query Trackers {\n  timers {\n    id\n    start\n    end\n    tags {\n      key\n      value\n      __typename\n    }\n    oldStart\n    note\n    __typename\n  }\n}\n",
 	}
@@ -65,12 +79,15 @@ func (t *Traggo) ListCurrentTasks() TimersData {
 }
 
 func (t *Traggo) ListCompleteTasks() TimeSpanTaskList {
-	op := OperationCursor{
+	variables := struct {
+		Cursor CursorRequest `json:"cursor"`
+	}{
+		Cursor: CursorRequest{Offset: 0, PageSize: 100},
+	}
+	op := Operation{
 		OperationName: "TimeSpans",
-		Variables: VariablesCursor{
-			Cursor: CursorRequest{Offset: 0, PageSize: 100},
-		},
-		Query: "query TimeSpans($cursor: InputCursor!) {\n  timeSpans(cursor: $cursor) {\n    timeSpans {\n      id\n      start\n      end\n      tags {\n        key\n        value\n        __typename\n      }\n      oldStart\n      note\n      __typename\n    }\n    cursor {hasMore\n      startId\n      offset\n      pageSize\n      __typename\n    }\n    __typename\n  }\n}\n",
+		Variables:     variables,
+		Query:         "query TimeSpans($cursor: InputCursor!) {\n  timeSpans(cursor: $cursor) {\n    timeSpans {\n      id\n      start\n      end\n      tags {\n        key\n        value\n        __typename\n      }\n      oldStart\n      note\n      __typename\n    }\n    cursor {hasMore\n      startId\n      offset\n      pageSize\n      __typename\n    }\n    __typename\n  }\n}\n",
 	}
 
 	var tasks TimeSpanTaskList
@@ -93,7 +110,11 @@ func (t *Traggo) ListCompleteTasks() TimeSpanTaskList {
 		if !d.Data.TimeSpans.Cursor.HasMore {
 			break
 		}
-		op.Variables.Cursor.Offset = d.Data.TimeSpans.Cursor.Offset
+		op.Variables = struct {
+			Cursor CursorRequest `json:"cursor"`
+		}{
+			Cursor: CursorRequest{Offset: d.Data.TimeSpans.Cursor.Offset, PageSize: 100},
+		}
 	}
 	return tasks
 }

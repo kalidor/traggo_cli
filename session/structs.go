@@ -66,70 +66,13 @@ type CursorRequest struct {
 	PageSize int `json:"pageSize,omitempty"`
 }
 
-type OperationLogin struct {
-	OperationName string         `json:"operationName"`
-	Variables     VariablesLogin `json:"variables"`
-	Query         string         `json:"query"`
-}
-
-type OperationContinue struct {
-	OperationName string            `json:"operationName"`
-	Variables     VariablesContinue `json:"variables,omitempty"`
-	Query         string            `json:"query"`
-}
-
-type OperationBetweenDate struct {
-	OperationName string                    `json:"operationName"`
-	Variables     VariablesUpdateWithCursor `json:"variables"`
-	Query         string                    `json:"query"`
-}
-
-type OperationUpdate struct {
-	OperationName string          `json:"operationName"`
-	Variables     VariablesUpdate `json:"variables"`
-	Query         string          `json:"query"`
-}
-
-type OperationWithoutVariables struct {
+type Operation struct {
 	OperationName string `json:"operationName"`
+	Variables     any    `json:"variables,omitempty"`
 	Query         string `json:"query"`
-}
-
-type OperationCursor struct {
-	OperationName string          `json:"operationName"`
-	Variables     VariablesCursor `json:"variables"`
-	Query         string          `json:"query"`
 }
 
 type Tag struct {
 	Key   string `json:"key"`
 	Value string `json:"value"`
-}
-
-type VariablesLogin struct {
-	Login    string `json:"login"`
-	Password string `json:"password"`
-}
-type VariablesCursor struct {
-	Cursor CursorRequest `json:"cursor"`
-}
-
-type VariablesContinue struct {
-	Id    int       `json:"id,omitempty"`
-	Start time.Time `json:"start"`
-}
-
-type VariablesUpdate struct {
-	OldStart time.Time `json:"oldStarts,omitzero"`
-	Id       int       `json:"id,omitempty"`
-	Start    time.Time `json:"start,omitzero"`
-	End      time.Time `json:"end,omitzero"`
-	Tags     []Tag     `json:"tags,omitzero"`
-	Note     string    `json:"note"` // do not omit if empty
-}
-
-type VariablesUpdateWithCursor struct {
-	Start  time.Time     `json:"start"`
-	End    time.Time     `json:"end"`
-	Cursor CursorRequest `json:"cursor"`
 }

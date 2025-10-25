@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strings"
 )
 
 type tag struct {
@@ -21,7 +22,7 @@ type rootTags struct {
 
 func (t tags) Contain(tagName string) bool {
 	for _, tag := range t {
-		if tag.Key == tagName {
+		if strings.EqualFold(tag.Key, tagName) {
 			return true
 		}
 	}

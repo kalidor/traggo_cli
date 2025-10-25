@@ -82,7 +82,7 @@ func (t *Traggo) Request(command, method string, postBody, model any) error {
 }
 
 func (t *Traggo) Ping() error {
-	op := OperationWithoutVariables{
+	op := Operation{
 		OperationName: "CurrentUser",
 		Query:         "query CurrentUser {\n  user: currentUser {\n    name\n    id\n  }\n}\n",
 	}
@@ -111,13 +111,11 @@ func (t *Traggo) CheckTagsInConfig() error {
 }
 
 func RequestPermanentTokenAndTest(url, login, password string) (string, error) {
-	op := OperationLogin{
+	variables := json.RawMessage(fmt.Sprintf(`{"login": "%s", "password": "%s"}`, login, password))
+	op := Operation{
 		OperationName: "Login",
-		Variables: VariablesLogin{
-			Login:    login,
-			Password: password,
-		},
-		Query: "mutation Login($name: String!, $pass: String!) {login(username: $name, pass: $pass, deviceName: \"test\", type: NoExpiry, cookie: false) {token user{id, name, admin, __typename}}}",
+		Variables:     &variables,
+		Query:         "mutation Login($name: String!, $pass: String!) {login(username: $name, pass: $pass, deviceName: \"test\", type: NoExpiry, cookie: false) {token user{id, name, admin, __typename}}}",
 	}
 	var body []byte
 	body, err := json.Marshal(op)
@@ -165,7 +163,7 @@ type UserSettings struct {
 }
 
 func (t *Traggo) GetSettings() {
-	op := OperationWithoutVariables{
+	op := Operation{
 		OperationName: "Settings",
 		Query:         "query Settings {\n  userSettings {\n    theme\n    dateLocale\n    firstDayOfTheWeek\n    dateTimeInputStyle}\n}\n",
 	}
