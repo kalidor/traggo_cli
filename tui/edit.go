@@ -3,22 +3,22 @@ package tui
 import (
 	"fmt"
 	"io"
+	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"github.com/kalidor/traggo_cli/config"
 	session "github.com/kalidor/traggo_cli/session"
 	utils "github.com/kalidor/traggo_cli/utils"
 )
 
 const (
-	editStartDatetime = iota
-	editEndDatetime
-	editTagTicket
-	editTagType
-	editNote
+	indexNote = iota + 2
+	indexStartDatetime
+	indexEndDatetime
 )
 
 type editModel struct {
@@ -36,65 +36,61 @@ func datetimeValidator(s string) error {
 }
 
 func initEdit(dump io.Writer, s *session.Traggo, mainState sessionState, taskIdStr string) editModel {
-	var inputs []textinput.Model = make([]textinput.Model, 5)
+	numTags := len(s.Tags)
+	var inputs []textinput.Model = make([]textinput.Model, numTags+3) // +3 for start, end and Note
+	sort.Sort(config.ByPosition(s.Tags))
 
 	taskId, _ := strconv.Atoi(taskIdStr)
 	task := s.SearchTask(taskId)
-	tagTicket := ""
-	tagType := ""
+
 	var tags []session.Tag
 	if task.Type() == session.TypeTimerTask {
 		tags = task.(session.TimerTask).Tags
 	} else {
 		tags = task.(session.TimeSpanTask).Tags
 	}
-	for _, t := range tags {
-		if t.Key == "ticket" {
-			tagTicket = t.Value
+
+	var v string
+	for index, tag := range s.Tags {
+		for _, t := range tags {
+			if t.Key == tag.TagName {
+				v = t.Value
+				break
+			}
 		}
-		if t.Key == "type" {
-			tagType = t.Value
-		}
+		inputs[index] = textinput.New()
+		inputs[index].Placeholder = tag.TagValueExample //"AA-1234"
+		inputs[index].SetValue(v)
+		inputs[index].CharLimit = tag.CharLimit
+		inputs[index].Width = tag.Width
+		inputs[index].Prompt = ""
 	}
 
-	inputs[editStartDatetime] = textinput.New()
-	inputs[editStartDatetime].Placeholder = "2025-09-12 12:00:00"
-	// inputs[editStartDatetime].Focus()
-	inputs[editStartDatetime].SetValue(task.GetStartString())
-	inputs[editStartDatetime].CharLimit = 19
-	inputs[editStartDatetime].Width = 19
-	inputs[editStartDatetime].Prompt = ""
-	inputs[editStartDatetime].Validate = datetimeValidator
+	// Note
+	inputs[indexNote] = textinput.New()
+	inputs[indexNote].Placeholder = "blablabla"
+	inputs[indexNote].SetValue(task.GetNote())
+	inputs[indexNote].CharLimit = 100
+	inputs[indexNote].Width = 150
+	inputs[indexNote].Prompt = ""
 
-	inputs[editEndDatetime] = textinput.New()
-	inputs[editEndDatetime].Placeholder = "2025-09-12 12:00:00"
-	inputs[editEndDatetime].SetValue(task.GetStopString())
-	inputs[editEndDatetime].CharLimit = 19
-	inputs[editEndDatetime].Width = 19
-	inputs[editEndDatetime].Prompt = ""
-	// No validator here since user could update current TimerTask
-	// inputs[editEndDatetime].Validate = datetimeValidator
+	// start datetime
+	inputs[indexStartDatetime] = textinput.New()
+	inputs[indexStartDatetime].Placeholder = "2025-09-12 12:00:00"
+	inputs[indexStartDatetime].SetValue(task.GetStartString())
+	inputs[indexStartDatetime].CharLimit = 19
+	inputs[indexStartDatetime].Width = 19
+	inputs[indexStartDatetime].Prompt = ""
+	inputs[indexStartDatetime].Validate = datetimeValidator
 
-	inputs[editTagTicket] = textinput.New()
-	inputs[editTagTicket].Placeholder = "HCS-1234"
-	inputs[editTagTicket].CharLimit = 20
-	inputs[editTagTicket].SetValue(tagTicket)
-	inputs[editTagTicket].Width = 30
-	inputs[editTagTicket].Prompt = ""
-
-	inputs[editTagType] = textinput.New()
-	inputs[editTagType].Placeholder = "doc/review/mdbi"
-	inputs[editTagType].SetValue(tagType)
-	inputs[editTagType].CharLimit = 20
-	inputs[editTagType].Width = 30
-	inputs[editTagType].Prompt = ""
-
-	inputs[editNote] = textinput.New()
-	inputs[editNote].Placeholder = "blablabla"
-	inputs[editNote].SetValue(task.GetNote())
-	inputs[editNote].CharLimit = 100
-	inputs[editNote].Width = 150
-	inputs[editNote].Prompt = ""
+	// end datetime
+	inputs[indexEndDatetime] = textinput.New()
+	inputs[indexEndDatetime].Placeholder = "2025-09-12 12:00:00"
+	inputs[indexEndDatetime].SetValue(task.GetStopString())
+	inputs[indexEndDatetime].CharLimit = 19
+	inputs[indexEndDatetime].Width = 19
+	inputs[indexEndDatetime].Prompt = ""
+	inputs[indexEndDatetime].Validate = datetimeValidator
 
 	return editModel{
 		commonModel: commonModel{
@@ -104,7 +100,7 @@ func initEdit(dump io.Writer, s *session.Traggo, mainState sessionState, taskIdS
 		},
 		task:    task,
 		inputs:  inputs,
-		focused: 0,
+		focused: -1,
 	}
 }
 
@@ -119,35 +115,35 @@ func (e editModel) View() string {
 		fmt.Println(err)
 	}
 	startErr := ""
-	if e.inputs[editStartDatetime].Err != nil {
+	if e.inputs[indexStartDatetime].Err != nil {
 		startErr = " x"
 	}
 	endErr := ""
-	if e.inputs[editEndDatetime].Err != nil {
+	if e.inputs[indexEndDatetime].Err != nil {
 		endErr = " x"
 	}
-	return fmt.Sprintf(
-		`%s %s 
-%s ->  %s
 
- %s: %s
- %s: %s
- %s: %s
+	var view []string
 
- %s
- `,
-		inputStyle.AlignHorizontal(lipgloss.Center).Width(20).Render(fmt.Sprintf("Start%s", startErr)),
-		inputStyle.AlignHorizontal(lipgloss.Center).Width(25).Render(fmt.Sprintf("End%s", endErr)),
-		e.inputs[editStartDatetime].View(),
-		e.inputs[editEndDatetime].View(),
-		inputStyle.Width(6).Render("Ticket"),
-		e.inputs[editTagTicket].View(),
-		inputStyle.Width(6).Render("Type"),
-		e.inputs[editTagType].View(),
-		inputStyle.Width(6).Render("Note"),
-		e.inputs[editNote].View(),
-		continueStyle.Render("Continue ->"),
+	for index, tag := range e.session.Tags {
+		view = append(view,
+			fmt.Sprintf("%s: %s", inputStyle.Width(6).Render(strings.ToLower(tag.TagName)), e.inputs[index].View()))
+	}
+	// Note
+	view = append(view,
+		fmt.Sprintf("%s: %s", inputStyle.Width(6).Render("Note"), e.inputs[indexNote].View()))
+
+	// start datetime
+	view = append(view,
+		fmt.Sprintf("%s: %s", inputStyle.Width(8).Render(fmt.Sprintf("Start%s", startErr)), e.inputs[indexStartDatetime].View()))
+
+	// end datetime
+	view = append(view,
+		fmt.Sprintf("%s: %s", inputStyle.Width(8).Render(fmt.Sprintf("End%s", endErr)), e.inputs[indexEndDatetime].View()))
+	view = append(view,
+		fmt.Sprintf("\n%s\n", continueStyle.Render("Continue ->")),
 	)
+	return strings.Join(view, "\n")
 }
 
 // nextInput focuses the next input field
@@ -179,24 +175,20 @@ func (e editModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyEnter:
 			if e.focused == len(e.inputs)-1 {
 				var tags []string
-				ticket := e.inputs[editTagTicket].Value()
-				tag := e.inputs[editTagType].Value()
-				startDatetime := e.inputs[editStartDatetime].Value()
-				endDatetime := e.inputs[editEndDatetime].Value()
-				note := e.inputs[editNote].Value()
+				for index, tag := range e.session.Tags {
+					v := e.inputs[index].Value()
+					if v == "" {
+						continue
+					}
+					tags = append(tags, fmt.Sprintf("%s:%s", strings.ToLower(tag.TagName), v))
+				}
 
-				if ticket == "" && tag == "" {
-				} else {
-					if ticket != "" {
-						tags = append(tags, fmt.Sprintf("ticket:%s", ticket))
-					}
-					if tag != "" {
-						tags = append(tags, fmt.Sprintf("type:%s", tag))
-					}
+				if len(tags) != 0 {
+					endDatetime := e.inputs[indexEndDatetime].Value()
 					updated_task := e.task.Update(
-						startDatetime,
+						e.inputs[indexStartDatetime].Value(),
 						endDatetime,
-						note,
+						e.inputs[indexNote].Value(),
 						tags,
 					)
 
@@ -214,9 +206,9 @@ func (e editModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			e.Reset()
 			return e, tea.Quit
 
-		case tea.KeyShiftTab:
+		case tea.KeyShiftTab, tea.KeyUp:
 			e.prevInput()
-		case tea.KeyTab:
+		case tea.KeyTab, tea.KeyDown:
 			e.nextInput()
 		case tea.KeyEsc:
 			e.Reset()
@@ -233,7 +225,10 @@ func (e editModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		for i := range e.inputs {
 			e.inputs[i].Blur()
 		}
-		e.inputs[e.focused].Focus()
+
+		if e.focused < len(e.inputs) && e.focused >= 0 {
+			e.inputs[e.focused].Focus()
+		}
 
 	case errMsg:
 		e.err = msg
