@@ -15,12 +15,6 @@ import (
 )
 
 const (
-	addTagTicket = iota
-	addTagType
-	addNote
-)
-
-const (
 	hotPink  = lipgloss.Color("#FF06B7")
 	darkGray = lipgloss.Color("#767676")
 )
