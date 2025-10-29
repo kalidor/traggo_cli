@@ -208,7 +208,7 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.previousState = m.state
 				m.state = searchView
 			case "n": // add new Task
-				return initAdd(m.dump, m.session, m.state).Update(msg)
+				return initEdit(m.dump, m.session, m.state, "-1").Update(msg)
 
 			case "d": // delete Task
 				current_row := m.table.SelectedRow()

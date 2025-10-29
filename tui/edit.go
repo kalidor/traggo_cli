@@ -8,8 +8,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/kalidor/traggo_cli/config"
 	session "github.com/kalidor/traggo_cli/session"
 	utils "github.com/kalidor/traggo_cli/utils"
@@ -21,9 +23,21 @@ const (
 	indexEndDatetime
 )
 
+const (
+	hotPink  = lipgloss.Color("#FF06B7")
+	darkGray = lipgloss.Color("#767676")
+)
+
+var (
+	inputStyle    = lipgloss.NewStyle().Foreground(hotPink)
+	continueStyle = lipgloss.NewStyle().Foreground(darkGray)
+)
+
 type editModel struct {
 	commonModel
 	inputs  []textinput.Model
+	help    help.Model
+	keys    editKeyMap
 	focused int
 	task    session.GenericTask
 	err     error
@@ -40,36 +54,54 @@ func initEdit(dump io.Writer, s *session.Traggo, mainState sessionState, taskIdS
 	var inputs []textinput.Model = make([]textinput.Model, numTags+3) // +3 for start, end and Note
 	sort.Sort(config.ByPosition(s.Tags))
 
-	taskId, _ := strconv.Atoi(taskIdStr)
-	task := s.SearchTask(taskId)
+	taskStartString := ""
+	taskStopString := ""
+	taskNote := ""
 
-	var tags []session.Tag
-	if task.Type() == session.TypeTimerTask {
-		tags = task.(session.TimerTask).Tags
-	} else {
-		tags = task.(session.TimeSpanTask).Tags
-	}
-
-	var v string
-	for index, tag := range s.Tags {
-		for _, t := range tags {
-			if t.Key == tag.TagName {
-				v = t.Value
-				break
-			}
+	if taskIdStr == "-1" {
+		for index, tag := range s.Tags {
+			inputs[index] = textinput.New()
+			inputs[index].Placeholder = tag.TagValueExample //"AA-1234"
+			inputs[index].CharLimit = tag.CharLimit
+			inputs[index].Width = tag.Width
+			inputs[index].Prompt = ""
 		}
-		inputs[index] = textinput.New()
-		inputs[index].Placeholder = tag.TagValueExample //"AA-1234"
-		inputs[index].SetValue(v)
-		inputs[index].CharLimit = tag.CharLimit
-		inputs[index].Width = tag.Width
-		inputs[index].Prompt = ""
+	} else {
+		taskId, _ := strconv.Atoi(taskIdStr)
+		task := s.SearchTask(taskId)
+
+		taskStartString = task.GetStartString()
+		taskStopString = task.GetStopString()
+		taskNote = task.GetNote()
+
+		var tags []session.Tag
+		if task.Type() == session.TypeTimerTask {
+			tags = task.(session.TimerTask).Tags
+		} else {
+			tags = task.(session.TimeSpanTask).Tags
+		}
+
+		var v string
+		for index, tag := range s.Tags {
+			for _, t := range tags {
+				if t.Key == tag.TagName {
+					v = t.Value
+					break
+				}
+			}
+			inputs[index] = textinput.New()
+			inputs[index].Placeholder = tag.TagValueExample //"AA-1234"
+			inputs[index].SetValue(v)
+			inputs[index].CharLimit = tag.CharLimit
+			inputs[index].Width = tag.Width
+			inputs[index].Prompt = ""
+		}
 	}
 
 	// Note
 	inputs[indexNote] = textinput.New()
 	inputs[indexNote].Placeholder = "blablabla"
-	inputs[indexNote].SetValue(task.GetNote())
+	inputs[indexNote].SetValue(taskNote)
 	inputs[indexNote].CharLimit = 100
 	inputs[indexNote].Width = 150
 	inputs[indexNote].Prompt = ""
@@ -77,7 +109,7 @@ func initEdit(dump io.Writer, s *session.Traggo, mainState sessionState, taskIdS
 	// start datetime
 	inputs[indexStartDatetime] = textinput.New()
 	inputs[indexStartDatetime].Placeholder = "2025-09-12 12:00:00"
-	inputs[indexStartDatetime].SetValue(task.GetStartString())
+	inputs[indexStartDatetime].SetValue(taskStartString)
 	inputs[indexStartDatetime].CharLimit = 19
 	inputs[indexStartDatetime].Width = 19
 	inputs[indexStartDatetime].Prompt = ""
@@ -86,20 +118,24 @@ func initEdit(dump io.Writer, s *session.Traggo, mainState sessionState, taskIdS
 	// end datetime
 	inputs[indexEndDatetime] = textinput.New()
 	inputs[indexEndDatetime].Placeholder = "2025-09-12 12:00:00"
-	inputs[indexEndDatetime].SetValue(task.GetStopString())
+	inputs[indexEndDatetime].SetValue(taskStopString)
 	inputs[indexEndDatetime].CharLimit = 19
 	inputs[indexEndDatetime].Width = 19
 	inputs[indexEndDatetime].Prompt = ""
 	inputs[indexEndDatetime].Validate = datetimeValidator
 
+	help := help.New()
+	help.ShowAll = true
 	return editModel{
 		commonModel: commonModel{
 			dump:    dump,
 			session: s,
 			state:   mainState,
 		},
-		task:    task,
+		task:    nil,
 		inputs:  inputs,
+		help:    help,
+		keys:    editKeys,
 		focused: -1,
 	}
 }
@@ -109,6 +145,8 @@ func (e editModel) Init() tea.Cmd {
 }
 
 func (e editModel) View() string {
+	helpView := e.help.View(e.keys)
+
 	err := ""
 	if e.err != nil {
 		err = fmt.Sprintf("Error: %s", e.err.Error())
@@ -141,7 +179,7 @@ func (e editModel) View() string {
 	view = append(view,
 		fmt.Sprintf("%s: %s", inputStyle.Width(8).Render(fmt.Sprintf("End%s", endErr)), e.inputs[indexEndDatetime].View()))
 	view = append(view,
-		fmt.Sprintf("\n%s\n", continueStyle.Render("Continue ->")),
+		fmt.Sprintf("\n%s\n\n%s", continueStyle.Render("Continue ->"), helpView),
 	)
 	return strings.Join(view, "\n")
 }
@@ -182,6 +220,14 @@ func (e editModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 					tags = append(tags, fmt.Sprintf("%s:%s", strings.ToLower(tag.TagName), v))
 				}
+				// it's a new task
+				if e.task == nil {
+					e.session.Start(tags, e.inputs[len(e.session.Tags)].Value())
+					e.Reset()
+					return NewMainModel(e.dump, e.session, e.state)
+				}
+
+				// otherwise it's task update
 
 				if len(tags) != 0 {
 					endDatetime := e.inputs[indexEndDatetime].Value()
@@ -203,7 +249,6 @@ func (e editModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			e.nextInput()
 
 		case tea.KeyCtrlC:
-			e.Reset()
 			return e, tea.Quit
 
 		case tea.KeyShiftTab, tea.KeyUp:

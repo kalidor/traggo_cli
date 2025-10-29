@@ -2,7 +2,7 @@ package tui
 
 import "github.com/charmbracelet/bubbles/key"
 
-type addKeyMap struct {
+type editKeyMap struct {
 	Tab   key.Binding // Switch to Current/Complete tasks
 	CtrlC key.Binding
 	CtrlL key.Binding
@@ -11,22 +11,22 @@ type addKeyMap struct {
 
 // ShortHelp returns keybindings to be shown in the mini help view. It's part
 // of the key.Map interface.
-func (k addKeyMap) ShortHelp() []key.Binding {
+func (k editKeyMap) ShortHelp() []key.Binding {
 	return []key.Binding{k.Tab, k.CtrlC, k.CtrlL, k.Esc}
 }
 
 // FullHelp returns keybindings for the expanded help view. It's part of the
 // key.Map interface.
-func (k addKeyMap) FullHelp() [][]key.Binding {
+func (k editKeyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
 		{k.Tab, k.CtrlC, k.CtrlL, k.Esc},
 	}
 }
 
-var addKeys = addKeyMap{
+var editKeys = editKeyMap{
 	Tab: key.NewBinding(
 		key.WithKeys("tab"),
-		key.WithHelp("tab", "change focus"),
+		key.WithHelp("tab/MajTab/↑/↓", "change focus"),
 	),
 	CtrlC: key.NewBinding(
 		key.WithKeys("Ctrl+c"),
