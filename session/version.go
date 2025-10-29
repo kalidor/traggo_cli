@@ -58,5 +58,5 @@ func (t *Traggo) GetVersion() Version {
 
 func (t *Traggo) Version() string {
 	version := t.GetVersion()
-	return fmt.Sprintf("Name: %s\nCommit:%s\nBuild date:%s\n", version.Name, version.Commit, version.BuildDate.Format(time.RFC3339))
+	return fmt.Sprintf("Name: %s\nCommit: %s\nBuild date: %s\n", version.Name, version.Commit, version.BuildDate.Format(time.RFC3339))
 }
