@@ -143,10 +143,28 @@ func (t TimersData) PreparePretty(colors config.ColorsDef, highlights ...string)
 }
 
 func (t TimersData) ToBubbleRow() []bubblesTable.Row {
-
+	// Id
+	// Done
+	// Tags
+	// StartedAt
+	// EndedAt
+	// Time
+	// Notes
 	var r []bubblesTable.Row
 	for _, task := range t.Timers {
-		r = append(r, bubblesTable.Row{fmt.Sprintf("%d", task.Id), strings.Join(task.ExportTags(), ", "), task.Start.Format(time.DateTime), "-"})
+		duration := time.Now().Local().Sub(task.Start)
+
+		r = append(r,
+			bubblesTable.Row{
+				fmt.Sprintf("%d", task.Id),
+				"-", // Done
+				strings.Join(task.ExportTags(), ", "),
+				task.Start.Format(time.DateTime),
+				"-",
+				duration.Round(time.Second).String(),
+				task.Note,
+			},
+		)
 	}
 	return r
 }

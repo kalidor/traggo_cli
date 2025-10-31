@@ -15,7 +15,7 @@ import (
 	session "github.com/kalidor/traggo_cli/session"
 )
 
-var currentTime = time.Date(2025, 12, 01, 00, 00, 00, 0, time.UTC)
+var currentTime = time.Date(2025, 12, 01, 00, 00, 00, 0, time.Local)
 
 func TestGetTokenAndTest(t *testing.T) {
 	// d := t.TempDir()
@@ -117,7 +117,7 @@ func TestStart(t *testing.T) {
 			Tags  []session.Tag `json:"tags"`
 			Note  string        `json:"note"`
 		}{
-			Start: session.TimeNow().UTC().Add(time.Hour * 2),
+			Start: session.TimeNow().Local(),
 			Tags:  []session.Tag{{Key: "tag1", Value: "value1"}, {Key: "tag2", Value: "value2"}},
 			Note:  "this is a note",
 		}
@@ -174,7 +174,7 @@ func TestStop(t *testing.T) {
 			End time.Time `json:"end"`
 		}{
 			Id:  1,
-			End: session.TimeNow().UTC().Add(time.Hour * 2),
+			End: session.TimeNow().Local(),
 		}
 		type expectedOperation struct {
 			OperationName string `json:"operationName"`

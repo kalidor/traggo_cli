@@ -33,9 +33,8 @@ var (
 	SelectedStyle = baseStyle.Foreground(lipgloss.Color("#01BE85")).Background(lipgloss.Color("#00432F"))
 	special       = lipgloss.AdaptiveColor{Light: "#43BF6D", Dark: "#73F59F"}
 	checkMark     = lipgloss.NewStyle().SetString("✓").
-			Foreground(special).
-			PaddingRight(1).
-			String()
+			Foreground(lipgloss.Color("#ff9966")).String()
+	// PaddingRight(1).
 )
 
 type taskType int
