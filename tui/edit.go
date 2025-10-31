@@ -57,8 +57,10 @@ func initEdit(dump io.Writer, s *session.Traggo, mainState sessionState, taskIdS
 	taskStartString := ""
 	taskStopString := ""
 	taskNote := ""
+	var task session.GenericTask
 
 	if taskIdStr == "-1" {
+		task = nil
 		for index, tag := range s.Tags {
 			inputs[index] = textinput.New()
 			inputs[index].Placeholder = tag.TagValueExample //"AA-1234"
@@ -68,7 +70,7 @@ func initEdit(dump io.Writer, s *session.Traggo, mainState sessionState, taskIdS
 		}
 	} else {
 		taskId, _ := strconv.Atoi(taskIdStr)
-		task := s.SearchTask(taskId)
+		task = s.SearchTask(taskId)
 
 		taskStartString = task.GetStartString()
 		taskStopString = task.GetStopString()
@@ -132,7 +134,7 @@ func initEdit(dump io.Writer, s *session.Traggo, mainState sessionState, taskIdS
 			session: s,
 			state:   mainState,
 		},
-		task:    nil,
+		task:    task,
 		inputs:  inputs,
 		help:    help,
 		keys:    editKeys,
