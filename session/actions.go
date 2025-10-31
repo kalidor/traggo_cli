@@ -32,7 +32,7 @@ func (t *Traggo) Start(tags []string, note string) {
 		Tags  []Tag     `json:"tags"`
 		Note  string    `json:"note"`
 	}{
-		Start: TimeNow().UTC().Add(time.Hour * 2),
+		Start: TimeNow().UTC(),
 		Tags:  genTags,
 		Note:  note,
 	}
@@ -64,7 +64,7 @@ func (t *Traggo) Stop(colors config.ColorsDef, ids []int) {
 		End time.Time `json:"end"`
 	}{
 		Id:  0,
-		End: TimeNow().UTC().Add(time.Hour * 2),
+		End: TimeNow().UTC().Add(time.Hour * 1),
 	}
 	op := Operation{
 		OperationName: "StopTimer",
@@ -74,7 +74,7 @@ func (t *Traggo) Stop(colors config.ColorsDef, ids []int) {
 
 	for _, id := range ids {
 		variables.Id = id
-		variables.End = TimeNow().UTC().Add(time.Hour * 2)
+		variables.End = TimeNow().UTC().Add(time.Hour * 1)
 
 		op.Variables = &variables
 		var d TimeSpanTask
