@@ -144,7 +144,6 @@ func (t TimersData) PreparePretty(colors config.ColorsDef, highlights ...string)
 
 func (t TimersData) ToBubbleRow() []bubblesTable.Row {
 	// Id
-	// Done
 	// Tags
 	// StartedAt
 	// EndedAt
@@ -157,7 +156,6 @@ func (t TimersData) ToBubbleRow() []bubblesTable.Row {
 		r = append(r,
 			bubblesTable.Row{
 				fmt.Sprintf("%d", task.Id),
-				"-", // Done
 				strings.Join(task.ExportTags(), ", "),
 				task.Start.Format(time.DateTime),
 				"-",

@@ -160,7 +160,6 @@ func (t TimeSpanTaskList) PreparePretty(colors config.ColorsDef, highlights ...s
 
 func (t TimeSpanTaskList) ToBubbleRow() []bubblesTable.Row {
 	// Id
-	// Done
 	// Tags
 	// StartedAt
 	// EndedAt
@@ -173,7 +172,6 @@ func (t TimeSpanTaskList) ToBubbleRow() []bubblesTable.Row {
 		r = append(r,
 			bubblesTable.Row{
 				fmt.Sprintf("%d", task.Id),
-				checkMark,
 				strings.Join(task.ExportTags(), ", "),
 				task.Start.Format(time.DateTime),
 				task.End.Format(time.DateTime),

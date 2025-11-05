@@ -57,7 +57,6 @@ type mainModel struct {
 func NewMainModel(dump io.Writer, session *session.Traggo, state sessionState) (tea.Model, tea.Cmd) {
 	columns := []table.Column{
 		{Title: "Id", Width: 4},
-		{Title: "Done", Width: 8},
 		{Title: "Tags", Width: 35},
 		{Title: "StartedAt", Width: 20},
 		{Title: "EndedAt", Width: 20},
@@ -305,7 +304,7 @@ func initTable(columns []table.Column, rows []table.Row) table.Model {
 		table.WithRows(rows),
 		table.WithFocused(true),
 		table.WithHeight(10),
-		table.WithWidth(145),
+		table.WithWidth(137),
 	)
 
 	style := table.DefaultStyles()
