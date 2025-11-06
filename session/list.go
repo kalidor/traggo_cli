@@ -60,6 +60,12 @@ func (t *Traggo) ListBetweenDates(startDate time.Time, endDate time.Time) TimeSp
 
 // ListCurrentTasks return TimerTasks containing current running tasks
 func (t *Traggo) ListCurrentTasks() TimersData {
+	return t.ListCurrentTasksStartingAt(time.Time{})
+}
+
+// ListCurrentTasksStartingAt return TimerTasks containing current running tasks
+// started from provided startDate and now
+func (t *Traggo) ListCurrentTasksStartingAt(startDateLimit time.Time) TimersData {
 	op := Operation{
 		OperationName: "Trackers",
 		Query:         "query Trackers {\n  timers {\n    id\n    start\n    end\n    tags {\n      key\n      value\n      __typename\n    }\n    oldStart\n    note\n    __typename\n  }\n}\n",
@@ -73,6 +79,16 @@ func (t *Traggo) ListCurrentTasks() TimersData {
 	)
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	if !startDateLimit.IsZero() {
+		ct := TimersData{}
+		for _, task := range tasks.Data.Timers {
+			if task.Start.After(startDateLimit) {
+				ct.Timers = append(ct.Timers, task)
+			}
+		}
+		return ct
 	}
 
 	return tasks.Data

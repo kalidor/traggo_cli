@@ -126,12 +126,16 @@ var (
 			}
 
 			if !startDate.IsZero() && !today && period == "" && endDate.IsZero() {
-				fmt.Println("coin")
 				endDate = time.Now()
 			}
 
 			if !startDate.IsZero() && !endDate.IsZero() {
 				fmt.Printf("Date range: [%s -> %s]\n", startDate.Format(time.DateOnly), endDate.Format(time.DateOnly))
+
+				startedTasks := s.ListCurrentTasksStartingAt(startDate)
+				if !startedTasks.IsEmpty() {
+					fmt.Println(startedTasks.PreparePretty(c.Colors, highlight))
+				}
 				tasks := s.ListBetweenDates(startDate, endDate)
 				if tasks.IsEmpty() {
 					return nil
