@@ -26,7 +26,11 @@ const (
 	TableView  sessionState = iota // 0
 	searchView                     // 2
 	periodView                     // 2
+)
 
+const (
+	searchSensitive = iota
+	searchInsensitive
 )
 
 type errMsg struct{ error }
@@ -49,6 +53,7 @@ type mainModel struct {
 	lastRefreshed string
 	currentTask   string
 	cursor        int
+	searchCase    int
 	// previousState sessionState
 }
 
@@ -105,6 +110,75 @@ func (m *mainModel) Refresh() {
 // 	m.height = height
 // }
 
+func (m *mainModel) searchInRows() {
+	vSearch := m.searchInput.Value()
+	if strings.Contains(vSearch, " ") {
+		m.searchStrings = strings.Split(vSearch, " ")
+		vSearch = ""
+	}
+	if len(m.searchStrings) == 0 && len(vSearch) == 0 {
+		return
+	}
+	if len(vSearch) >= 1 {
+		var sRows []table.Row
+		for _, row := range m.rowsOrigin {
+
+			tagRow := row[1]
+			noteRow := row[5]
+			if m.searchCase == searchInsensitive {
+				tagRow = strings.ToLower(tagRow)
+				noteRow = strings.ToLower(noteRow)
+			}
+			if len(m.searchStrings) > 0 {
+				match := []bool{}
+				for _, s := range m.searchStrings {
+					if strings.Contains(tagRow, s) || strings.Contains(noteRow, s) {
+						match = append(match, true)
+					}
+				}
+				if strings.Contains(tagRow, vSearch) || strings.Contains(noteRow, vSearch) {
+					match = append(match, true)
+
+				}
+				if len(match) == len(m.searchStrings)+1 {
+					sRows = append(sRows, row)
+				}
+
+			} else {
+				// search in Tags and Notes
+				if strings.Contains(tagRow, vSearch) || strings.Contains(noteRow, vSearch) {
+					sRows = append(sRows, row)
+				}
+			}
+		}
+		m.table.SetRows(sRows)
+	} else {
+		var sRows []table.Row
+
+		for _, row := range m.rowsOrigin {
+			tagRow := row[1]
+			noteRow := row[5]
+			if m.searchCase == searchInsensitive {
+				tagRow = strings.ToLower(tagRow)
+				noteRow = strings.ToLower(noteRow)
+			}
+			if len(m.searchStrings) > 0 {
+				match := []bool{}
+
+				for _, s := range m.searchStrings {
+					if strings.Contains(tagRow, s) || strings.Contains(noteRow, s) {
+						match = append(match, true)
+					}
+				}
+				if len(match) == len(m.searchStrings) {
+					sRows = append(sRows, row)
+				}
+			}
+		}
+		m.table.SetRows(sRows)
+	}
+}
+
 func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if m.dump != nil {
 		spew.Fdump(m.dump, msg)
@@ -123,68 +197,36 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "enter":
 				s := m.searchInput.Value()
 				if s != "" {
-					m.searchStrings = append(m.searchStrings, s)
+					if !strings.Contains(s, " ") {
+						m.searchStrings = append(m.searchStrings, s)
+					}
 				} else {
 					m.state = TableView
 				}
 				m.searchInput.Reset()
 
-			case "esc":
+			case "esc", "ctrl+c":
 				m.state = TableView
+				return m, cmd
+			case "ctrl+s": // toogle search case
+				if m.searchCase == searchSensitive {
+					m.searchCase = searchInsensitive
+					m.searchInput.Prompt = "[I]> "
+				} else {
+					m.searchCase = searchSensitive
+					m.searchInput.Prompt = "[S]> "
+				}
+
 			case "ctrl+l":
 				m.searchStrings = []string{}
 				m.table.SetRows(m.rowsOrigin)
+				return m, cmd
 			}
 			m.searchInput, cmd = m.searchInput.Update(msg)
-			vSearch := m.searchInput.Value()
-			// TODO:
-			// if space is in vSearch -> search for both word separately
+
+			// TODO: ?
 			// if space is in vSearch but between quote like "hello world" -> search for this word
-			if len(vSearch) >= 1 {
-				var sRows []table.Row
-				for _, row := range m.rowsOrigin {
-					if len(m.searchStrings) > 0 {
-						match := []bool{}
-						for _, s := range m.searchStrings {
-							if strings.Contains(row[1], s) || strings.Contains(row[5], s) {
-								match = append(match, true)
-							}
-						}
-						if strings.Contains(row[1], vSearch) || strings.Contains(row[5], vSearch) {
-							match = append(match, true)
-
-						}
-						if len(match) == len(m.searchStrings)+1 {
-							sRows = append(sRows, row)
-						}
-
-					} else {
-						// search in Tags and Notes
-						if strings.Contains(row[1], vSearch) || strings.Contains(row[5], vSearch) {
-							sRows = append(sRows, row)
-						}
-					}
-				}
-				m.table.SetRows(sRows)
-			} else {
-				var sRows []table.Row
-
-				for _, row := range m.rowsOrigin {
-					if len(m.searchStrings) > 0 {
-						match := []bool{}
-
-						for _, s := range m.searchStrings {
-							if strings.Contains(row[1], s) || strings.Contains(row[5], s) {
-								match = append(match, true)
-							}
-						}
-						if len(match) == len(m.searchStrings) {
-							sRows = append(sRows, row)
-						}
-					}
-				}
-				m.table.SetRows(sRows)
-			}
+			(&m).searchInRows()
 		}
 		return m, cmd
 
@@ -195,10 +237,23 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// 	return m, nil
 		case tea.KeyMsg:
 			switch msg.String() {
+			case "ctrl+w":
+				// Remove last search term
+				// foo bar => foo
+				if len(m.searchStrings) > 0 {
+					m.searchStrings = m.searchStrings[:len(m.searchStrings)-1]
+					(&m).searchInRows()
+				}
+				// if there is no search term => display original rows
+				if len(m.searchStrings) == 0 {
+					m.table.SetRows(m.rowsOrigin)
+				}
+				return m, cmd
 			case "ctrl+l":
 				m.lastRefreshed = ""
 				m.searchStrings = []string{}
 				m.table.SetRows(m.rowsOrigin)
+				return m, cmd
 
 			case "pgup":
 				m.table.MoveUp(10)
@@ -337,10 +392,11 @@ func (m mainModel) View() string {
 
 func initSearchInput() textinput.Model {
 	sti := textinput.New()
-	sti.Placeholder = "Pikachu"
+	sti.Placeholder = "Search term"
 	sti.Focus()
 	sti.CharLimit = 156
 	sti.Width = 20
+	sti.Prompt = "[S]> " // default sensitive search
 	return sti
 }
 
