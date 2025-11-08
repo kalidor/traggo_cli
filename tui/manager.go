@@ -116,52 +116,6 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch m.state {
 
-	case periodView:
-		switch msg := msg.(type) {
-		case tea.KeyMsg:
-			switch msg.String() {
-			case "enter":
-				s := m.searchInput.Value()
-				if s != "" {
-					m.searchStrings = append(m.searchStrings, s)
-				} else {
-					m.state = TableView
-				}
-				m.searchInput.Reset()
-
-			case "esc":
-				m.state = TableView
-			case "ctrl+l":
-				m.searchStrings = []string{}
-				m.table.SetRows(m.rowsOrigin)
-			}
-			m.searchInput, cmd = m.searchInput.Update(msg)
-			vSearch := m.searchInput.Value()
-			// TODO:
-			// if space is in vSearch -> search for both word separately
-			// if space is in vSearch but between quote like "hello world" -> search for this word
-			if len(vSearch) >= 1 {
-				var sRows []table.Row
-				for _, row := range m.rowsOrigin {
-					if len(m.searchStrings) > 0 {
-						for _, s := range m.searchStrings {
-							// search only in tag
-							// TODO: search in Notes too
-							if strings.Contains(row[1], s) && strings.Contains(row[1], vSearch) {
-								sRows = append(sRows, row)
-							}
-						}
-					} else {
-						// search in Tags and Notes
-						if strings.Contains(row[1], vSearch) || strings.Contains(row[5], vSearch) {
-							sRows = append(sRows, row)
-						}
-					}
-				}
-				m.table.SetRows(sRows)
-			}
-		}
-		return m, cmd
 	case searchView:
 		switch msg := msg.(type) {
 		case tea.KeyMsg:
@@ -192,9 +146,13 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					if len(m.searchStrings) > 0 {
 						match := []bool{}
 						for _, s := range m.searchStrings {
-							if strings.Contains(row[1], s) || strings.Contains(row[1], vSearch) || strings.Contains(row[5], s) || strings.Contains(row[5], vSearch) {
+							if strings.Contains(row[1], s) || strings.Contains(row[5], s) {
 								match = append(match, true)
 							}
+						}
+						if strings.Contains(row[1], vSearch) || strings.Contains(row[5], vSearch) {
+							match = append(match, true)
+
 						}
 						if len(match) == len(m.searchStrings)+1 {
 							sRows = append(sRows, row)
