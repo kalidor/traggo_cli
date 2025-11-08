@@ -73,20 +73,12 @@ func (m deleteModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.deleteState == yesView {
 				m.session.Delete([]int{m.taskId})
 			}
-			if m.state == TableViewCurrent {
-				m.state = tableViewRefreshCurrent
-			} else {
-				m.state = tableViewRefreshComplete
-			}
+			m.state = TableView
 
 			return NewMainModel(m.dump, m.session, m.state)
 
 		case "esc":
-			if m.state == TableViewCurrent {
-				m.state = tableViewRefreshCurrent
-			} else {
-				m.state = tableViewRefreshComplete
-			}
+			m.state = TableView
 			return NewMainModel(m.dump, m.session, m.state)
 
 		case "ctrl+c", "q":

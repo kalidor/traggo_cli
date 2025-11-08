@@ -259,11 +259,7 @@ func (e editModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			e.nextInput()
 		case tea.KeyEsc:
 			e.Reset()
-			if e.state == TableViewCurrent {
-				e.state = tableViewRefreshCurrent
-			} else {
-				e.state = tableViewRefreshComplete
-			}
+			e.state = TableView
 
 			return NewMainModel(e.dump, e.session, e.state)
 		case tea.KeyCtrlL:

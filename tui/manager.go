@@ -23,11 +23,9 @@ var baseStyle = lipgloss.NewStyle().
 type sessionState int
 
 const (
-	TableViewCurrent         sessionState = iota // 0
-	TableViewComplete                            // 1
-	searchView                                   // 2
-	tableViewRefreshCurrent                      // 6
-	tableViewRefreshComplete                     // 7
+	TableView  sessionState = iota // 0
+	searchView                     // 2
+	periodView                     // 2
 
 )
 
@@ -51,19 +49,30 @@ type mainModel struct {
 	lastRefreshed string
 	currentTask   string
 	cursor        int
-	previousState sessionState
+	// previousState sessionState
+}
+
+func (m mainModel) getTasks(withComplete bool) []table.Row {
+	rows := m.session.ListCurrentTasks().ToBubbleRow()
+	if withComplete {
+		// Add complete Tasks
+		rows = append(rows, m.session.ListCompleteTasks().ToBubbleRow()...)
+	}
+	return rows
 }
 
 func NewMainModel(dump io.Writer, session *session.Traggo, state sessionState) (tea.Model, tea.Cmd) {
 	columns := []table.Column{
 		{Title: "Id", Width: 4},
-		{Title: "Tags", Width: 35},
+		{Title: "Tags", Width: 30},
 		{Title: "StartedAt", Width: 20},
 		{Title: "EndedAt", Width: 20},
-		{Title: "Time", Width: 20},
+		{Title: "Time", Width: 10},
 		{Title: "Notes", Width: 40},
 	}
 	rows := session.ListCurrentTasks().ToBubbleRow()
+	// Add complete Tasks
+	rows = append(rows, session.ListCompleteTasks().ToBubbleRow()...)
 	m := mainModel{
 		keys:        mainKeys,
 		help:        help.New(),
@@ -85,16 +94,16 @@ func (m mainModel) Init() tea.Cmd {
 }
 
 func (m *mainModel) Refresh() {
-	switch m.state {
-	case TableViewCurrent:
-		m.rowsOrigin = m.session.ListCurrentTasks().ToBubbleRow()
-	case TableViewComplete:
-		m.rowsOrigin = m.session.ListCompleteTasks().ToBubbleRow()
-	}
+	m.rowsOrigin = m.getTasks(true)
 	m.table.SetRows(m.rowsOrigin)
 	m.lastRefreshed = time.Now().Format(time.DateTime)
 
 }
+
+// func (m *mainModel) updateDimensions(width, height int) {
+// 	m.width = width
+// 	m.height = height
+// }
 
 func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if m.dump != nil {
@@ -107,15 +116,7 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch m.state {
 
-	case tableViewRefreshCurrent, tableViewRefreshComplete:
-		if m.state == tableViewRefreshCurrent {
-			m.state = TableViewCurrent
-		} else {
-			m.state = TableViewComplete
-		}
-		m.Refresh()
-		return m, cmd
-	case searchView:
+	case periodView:
 		switch msg := msg.(type) {
 		case tea.KeyMsg:
 			switch msg.String() {
@@ -124,13 +125,12 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if s != "" {
 					m.searchStrings = append(m.searchStrings, s)
 				} else {
-					m.state = m.previousState
+					m.state = TableView
 				}
 				m.searchInput.Reset()
 
 			case "esc":
-				m.state = m.previousState
-
+				m.state = TableView
 			case "ctrl+l":
 				m.searchStrings = []string{}
 				m.table.SetRows(m.rowsOrigin)
@@ -145,12 +145,82 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				for _, row := range m.rowsOrigin {
 					if len(m.searchStrings) > 0 {
 						for _, s := range m.searchStrings {
+							// search only in tag
+							// TODO: search in Notes too
 							if strings.Contains(row[1], s) && strings.Contains(row[1], vSearch) {
 								sRows = append(sRows, row)
 							}
 						}
 					} else {
-						if strings.Contains(row[1], vSearch) {
+						// search in Tags and Notes
+						if strings.Contains(row[1], vSearch) || strings.Contains(row[5], vSearch) {
+							sRows = append(sRows, row)
+						}
+					}
+				}
+				m.table.SetRows(sRows)
+			}
+		}
+		return m, cmd
+	case searchView:
+		switch msg := msg.(type) {
+		case tea.KeyMsg:
+			switch msg.String() {
+			case "enter":
+				s := m.searchInput.Value()
+				if s != "" {
+					m.searchStrings = append(m.searchStrings, s)
+				} else {
+					m.state = TableView
+				}
+				m.searchInput.Reset()
+
+			case "esc":
+				m.state = TableView
+			case "ctrl+l":
+				m.searchStrings = []string{}
+				m.table.SetRows(m.rowsOrigin)
+			}
+			m.searchInput, cmd = m.searchInput.Update(msg)
+			vSearch := m.searchInput.Value()
+			// TODO:
+			// if space is in vSearch -> search for both word separately
+			// if space is in vSearch but between quote like "hello world" -> search for this word
+			if len(vSearch) >= 1 {
+				var sRows []table.Row
+				for _, row := range m.rowsOrigin {
+					if len(m.searchStrings) > 0 {
+						match := []bool{}
+						for _, s := range m.searchStrings {
+							if strings.Contains(row[1], s) || strings.Contains(row[1], vSearch) || strings.Contains(row[5], s) || strings.Contains(row[5], vSearch) {
+								match = append(match, true)
+							}
+						}
+						if len(match) == len(m.searchStrings)+1 {
+							sRows = append(sRows, row)
+						}
+
+					} else {
+						// search in Tags and Notes
+						if strings.Contains(row[1], vSearch) || strings.Contains(row[5], vSearch) {
+							sRows = append(sRows, row)
+						}
+					}
+				}
+				m.table.SetRows(sRows)
+			} else {
+				var sRows []table.Row
+
+				for _, row := range m.rowsOrigin {
+					if len(m.searchStrings) > 0 {
+						match := []bool{}
+
+						for _, s := range m.searchStrings {
+							if strings.Contains(row[1], s) || strings.Contains(row[5], s) {
+								match = append(match, true)
+							}
+						}
+						if len(match) == len(m.searchStrings) {
 							sRows = append(sRows, row)
 						}
 					}
@@ -160,21 +230,40 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, cmd
 
-	case TableViewComplete, TableViewCurrent:
+	case TableView:
 		switch msg := msg.(type) {
+		// case tea.WindowSizeMsg:
+		// 	m.updateDimensions(msg.Width, msg.Height)
+		// 	return m, nil
 		case tea.KeyMsg:
 			switch msg.String() {
-			case "tab":
-				if m.state == TableViewCurrent {
-					m.state = TableViewComplete
-				} else {
-					m.state = TableViewCurrent
-				}
-				m.Refresh()
-
 			case "ctrl+l":
 				m.lastRefreshed = ""
+				m.searchStrings = []string{}
+				m.table.SetRows(m.rowsOrigin)
 
+			case "pgup":
+				m.table.MoveUp(10)
+				if m.currentTask != "" {
+					current_row := m.table.SelectedRow()
+					if current_row == nil {
+						return m, cmd
+					}
+					task_id, _ := strconv.Atoi(current_row[0])
+					m.currentTask = m.session.SearchTask(task_id).PreparePretty(m.session.Colors)
+				}
+				return m, cmd
+			case "pgdown":
+				m.table.MoveDown(10)
+				if m.currentTask != "" {
+					current_row := m.table.SelectedRow()
+					if current_row == nil {
+						return m, cmd
+					}
+					task_id, _ := strconv.Atoi(current_row[0])
+					m.currentTask = m.session.SearchTask(task_id).PreparePretty(m.session.Colors)
+				}
+				return m, cmd
 			case "up":
 				m.table.MoveUp(1)
 				if m.currentTask != "" {
@@ -204,7 +293,6 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, tea.Quit
 				}
 			case "/": // search Task / Filter
-				m.previousState = m.state
 				m.state = searchView
 			case "n": // add new Task
 				return initEdit(m.dump, m.session, m.state, "-1").Update(msg)
@@ -303,8 +391,8 @@ func initTable(columns []table.Column, rows []table.Row) table.Model {
 		table.WithColumns(columns),
 		table.WithRows(rows),
 		table.WithFocused(true),
-		table.WithHeight(10),
-		table.WithWidth(137),
+		// table.WithHeight(10),
+		// table.WithWidth(100),
 	)
 
 	style := table.DefaultStyles()

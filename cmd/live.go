@@ -32,7 +32,7 @@ var liveCmd = &cobra.Command{
 				os.Exit(1)
 			}
 		}
-		m, _ := tui.NewMainModel(dump, s, tui.TableViewCurrent)
+		m, _ := tui.NewMainModel(dump, s, tui.TableView)
 
 		if _, err := tea.NewProgram(m).Run(); err != nil {
 			fmt.Println("Error running program:", err)
