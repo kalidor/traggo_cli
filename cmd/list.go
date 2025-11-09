@@ -25,7 +25,8 @@ var (
 		Long: `List current running tasks. Examples:
 - ./traggo_cli list
 - ./traggo_cli list [-s | --start-date 2025-08-12] [-e | --end-date 2025-08-20]
-- './traggo_cli list --period -1m' is the same as './traggo_cli list -s 2025-07-01 -e 2025-08-22' # if today is 2025-08-22
+- ./traggo_cli list --period -1m # the same as below
+- ./traggo_cli list -s 2025-07-22 -e 2025-08-22 # if today is 2025-08-22
 - ./traggo_cli list --period 1w`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := config.LoadConfig(configPath)
