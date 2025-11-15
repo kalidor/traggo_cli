@@ -3,6 +3,7 @@ package tui
 import (
 	"fmt"
 	"io"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -49,12 +50,13 @@ type mainModel struct {
 	table         table.Model
 	searchInput   textinput.Model
 	searchStrings []string
+	periodInput   textinput.Model
+	periodString  string
 	rowsOrigin    []table.Row
 	lastRefreshed string
 	currentTask   string
 	cursor        int
 	searchCase    int
-	// previousState sessionState
 }
 
 func (m mainModel) getTasks(withComplete bool) []table.Row {
@@ -84,6 +86,7 @@ func NewMainModel(dump io.Writer, session *session.Traggo, state sessionState) (
 		searchHelp:  help.New(),
 		table:       initTable(columns, rows),
 		searchInput: initSearchInput(),
+		periodInput: initPeriodInput(),
 		rowsOrigin:  rows,
 		commonModel: commonModel{
 			dump:    dump,
@@ -101,7 +104,7 @@ func (m mainModel) Init() tea.Cmd {
 func (m *mainModel) Refresh() {
 	m.rowsOrigin = m.getTasks(true)
 	m.table.SetRows(m.rowsOrigin)
-	m.lastRefreshed = time.Now().Format(time.DateTime)
+	m.lastRefreshed = time.Now().Local().Format(time.DateTime)
 
 }
 
@@ -124,6 +127,7 @@ func (m *mainModel) searchInRows() {
 		for _, row := range m.rowsOrigin {
 
 			tagRow := row[1]
+			startDateRow := row[2]
 			noteRow := row[5]
 			if m.searchCase == searchInsensitive {
 				tagRow = strings.ToLower(tagRow)
@@ -132,11 +136,11 @@ func (m *mainModel) searchInRows() {
 			if len(m.searchStrings) > 0 {
 				match := []bool{}
 				for _, s := range m.searchStrings {
-					if strings.Contains(tagRow, s) || strings.Contains(noteRow, s) {
+					if strings.Contains(tagRow, s) || strings.Contains(noteRow, s) || strings.Contains(startDateRow, s) {
 						match = append(match, true)
 					}
 				}
-				if strings.Contains(tagRow, vSearch) || strings.Contains(noteRow, vSearch) {
+				if strings.Contains(tagRow, vSearch) || strings.Contains(noteRow, vSearch) || strings.Contains(startDateRow, vSearch) {
 					match = append(match, true)
 
 				}
@@ -146,7 +150,7 @@ func (m *mainModel) searchInRows() {
 
 			} else {
 				// search in Tags and Notes
-				if strings.Contains(tagRow, vSearch) || strings.Contains(noteRow, vSearch) {
+				if strings.Contains(tagRow, vSearch) || strings.Contains(noteRow, vSearch) || strings.Contains(startDateRow, vSearch) {
 					sRows = append(sRows, row)
 				}
 			}
@@ -157,6 +161,7 @@ func (m *mainModel) searchInRows() {
 
 		for _, row := range m.rowsOrigin {
 			tagRow := row[1]
+			startDateRow := row[2]
 			noteRow := row[5]
 			if m.searchCase == searchInsensitive {
 				tagRow = strings.ToLower(tagRow)
@@ -166,7 +171,7 @@ func (m *mainModel) searchInRows() {
 				match := []bool{}
 
 				for _, s := range m.searchStrings {
-					if strings.Contains(tagRow, s) || strings.Contains(noteRow, s) {
+					if strings.Contains(tagRow, s) || strings.Contains(noteRow, s) || strings.Contains(startDateRow, s) {
 						match = append(match, true)
 					}
 				}
@@ -177,6 +182,48 @@ func (m *mainModel) searchInRows() {
 		}
 		m.table.SetRows(sRows)
 	}
+}
+
+func (m *mainModel) searchByPeriodInRows() {
+	if m.periodString == "" {
+		return
+	}
+	re := regexp.MustCompile(`(?P<Number>(?:-)?\d+)(?P<Type>[[:alpha:]]{1})`)
+	matches := re.FindStringSubmatch(m.periodString)
+	delta := func(sDate time.Time, eDate *time.Time) {}
+	var startDate time.Time
+
+	if len(matches) > 0 {
+		nIndex := re.SubexpIndex("Number")
+		nString := matches[nIndex]
+		number, _ := strconv.Atoi(nString)
+		tIndex := re.SubexpIndex("Type")
+
+		c := matches[tIndex]
+		switch c {
+		case "d":
+			delta = func(sDate time.Time, eDate *time.Time) {
+				*eDate = sDate.AddDate(0, 0, number)
+			}
+
+		case "m":
+			delta = func(sDate time.Time, eDate *time.Time) {
+				*eDate = sDate.AddDate(0, number, 0)
+			}
+
+		case "w":
+			delta = func(sDate time.Time, eDate *time.Time) {
+				*eDate = sDate.AddDate(0, 0, number*7)
+			}
+		default:
+			return
+		}
+	}
+	endDate := time.Now()
+	// period is negative number
+	delta(endDate, &startDate)
+	tasks := m.session.ListBetweenDates(startDate, endDate)
+	m.table.SetRows(tasks.ToBubbleRow())
 }
 
 func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -190,6 +237,33 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch m.state {
 
+	case periodView:
+		switch msg := msg.(type) {
+		case tea.KeyMsg:
+			switch msg.String() {
+			case "enter":
+				s := m.periodInput.Value()
+				if s != "" {
+					m.periodString = s
+				} else {
+					m.state = TableView
+				}
+				m.periodInput.Reset()
+
+			case "esc", "ctrl+c":
+				m.state = TableView
+				return m, cmd
+
+			case "ctrl+l":
+				m.periodString = ""
+				m.table.SetRows(m.rowsOrigin)
+				return m, cmd
+			}
+			m.periodInput, cmd = m.periodInput.Update(msg)
+
+			(&m).searchByPeriodInRows()
+		}
+		return m, cmd
 	case searchView:
 		switch msg := msg.(type) {
 		case tea.KeyMsg:
@@ -305,6 +379,8 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				} else {
 					return m, tea.Quit
 				}
+			case "p": // period / Filter
+				m.state = periodView
 			case "/": // search Task / Filter
 				m.state = searchView
 			case "n": // add new Task
@@ -371,13 +447,21 @@ func (m mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m mainModel) View() string {
 	helpView := m.help.View(m.keys)
 	searchHelpView := m.searchHelp.View(searchKeys)
-	seachTerms := ""
+	searchTerms := ""
+	periodTerms := ""
 	if len(m.searchStrings) > 0 {
-		seachTerms = fmt.Sprintf("\nCurrent search: %s", strings.Join(m.searchStrings, " / "))
+		searchTerms = fmt.Sprintf("\nCurrent search: %s", strings.Join(m.searchStrings, " / "))
+	}
+	if m.periodString != "" {
+		periodTerms = fmt.Sprintf("\nPeriod: %s", m.periodString)
+		searchTerms = ""
+		m.searchStrings = []string{}
 	}
 	switch m.state {
 	case searchView:
-		return baseStyle.Render(m.table.View()) + "\n" + m.searchInput.View() + seachTerms + "\n" + searchHelpView
+		return baseStyle.Render(m.table.View()) + "\n" + m.searchInput.View() + searchTerms + "\n" + searchHelpView
+	case periodView:
+		return baseStyle.Render(m.table.View()) + "\n" + m.periodInput.View() + periodTerms + "\n" + searchHelpView
 	}
 	if m.currentTask != "" {
 		m.currentTask = fmt.Sprintf("%s\n", m.currentTask)
@@ -386,8 +470,18 @@ func (m mainModel) View() string {
 		m.lastRefreshed = fmt.Sprintf("Refreshed: %s\n", m.lastRefreshed)
 	}
 
-	return baseStyle.Render(m.table.View()) + "\n" + m.currentTask + seachTerms + "\n" + m.lastRefreshed + helpView
+	return baseStyle.Render(m.table.View()) + "\n" + m.currentTask + searchTerms + periodTerms + "\n" + m.lastRefreshed + helpView
 
+}
+
+func initPeriodInput() textinput.Model {
+	pti := textinput.New()
+	pti.Placeholder = "Period term"
+	pti.Focus()
+	pti.CharLimit = 10
+	pti.Width = 20
+	pti.Prompt = "[Period]> "
+	return pti
 }
 
 func initSearchInput() textinput.Model {

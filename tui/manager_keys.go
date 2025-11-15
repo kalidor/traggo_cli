@@ -9,29 +9,30 @@ type mainKeyMap struct {
 	R     key.Binding // Refresh
 	C     key.Binding // Continue
 	D     key.Binding // Delete
-	Tab   key.Binding // Switch to Current/Complete tasks
+	P     key.Binding // Period search
+	S     key.Binding // Stop task
+	N     key.Binding // New task
 	Up    key.Binding
 	Down  key.Binding
-	Left  key.Binding
-	Right key.Binding
 	Help  key.Binding
 	Enter key.Binding
 	Quit  key.Binding
+	Slash key.Binding // search
 }
 
 // ShortHelp returns keybindings to be shown in the mini help view. It's part
 // of the key.Map interface.
 func (k mainKeyMap) ShortHelp() []key.Binding {
-	return []key.Binding{k.Tab, k.C, k.D, k.E, k.R, k.Help}
+	return []key.Binding{k.N, k.S, k.C, k.D, k.E, k.Slash, k.Help}
 }
 
 // FullHelp returns keybindings for the expanded help view. It's part of the
 // key.Map interface.
 func (k mainKeyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
-		{k.Tab, k.Up, k.Down}, // first column
-		{k.C, k.D, k.E, k.R},  // second column
-		{k.Help, k.Quit},      // third column
+		{k.N, k.S, k.Up, k.Down}, // first column
+		{k.C, k.D, k.E, k.R},     // second column
+		{k.Help, k.Quit},         // third column
 	}
 }
 
@@ -56,25 +57,29 @@ var mainKeys = mainKeyMap{
 		key.WithKeys("r"),
 		key.WithHelp("r", "refresh"),
 	),
-	Tab: key.NewBinding(
-		key.WithKeys("tab"),
-		key.WithHelp("tab", "current/complete"),
+	N: key.NewBinding(
+		key.WithKeys("n"),
+		key.WithHelp("n", "new"),
+	),
+	S: key.NewBinding(
+		key.WithKeys("s"),
+		key.WithHelp("s", "stop"),
+	),
+	Slash: key.NewBinding(
+		key.WithKeys("/"),
+		key.WithHelp("/", "search"),
+	),
+	P: key.NewBinding(
+		key.WithKeys("p"),
+		key.WithHelp("p", "period search"),
 	),
 	Up: key.NewBinding(
-		key.WithKeys("up", "k"),
-		key.WithHelp("↑/k", "move up"),
+		key.WithKeys("up"),
+		key.WithHelp("↑", "move up"),
 	),
 	Down: key.NewBinding(
-		key.WithKeys("down", "j"),
-		key.WithHelp("↓/j", "move down"),
-	),
-	Left: key.NewBinding(
-		key.WithKeys("left", "h"),
-		key.WithHelp("←/h", "move left"),
-	),
-	Right: key.NewBinding(
-		key.WithKeys("right", "l"),
-		key.WithHelp("→/l", "move right"),
+		key.WithKeys("down"),
+		key.WithHelp("↓", "move down"),
 	),
 	Help: key.NewBinding(
 		key.WithKeys("?"),
