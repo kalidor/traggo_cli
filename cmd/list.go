@@ -104,6 +104,7 @@ var (
 					fmt.Println(tasks.PreparePretty(c.Colors, highlight))
 				} else {
 					endDate = time.Now()
+					// period is negative number
 					delta(endDate, &startDate)
 				}
 			}
@@ -126,7 +127,7 @@ var (
 				return nil
 			}
 
-			if !startDate.IsZero() && !today && period == "" && endDate.IsZero() {
+			if !startDate.IsZero() && period == "" && endDate.IsZero() {
 				endDate = time.Now()
 			}
 
